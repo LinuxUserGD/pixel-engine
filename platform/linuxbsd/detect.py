@@ -48,7 +48,7 @@ def get_opts():
         BoolVariable("udev", "Use udev for gamepad connection callbacks", True),
         BoolVariable("x11", "Enable X11 display", True),
         BoolVariable("touch", "Enable touch events", True),
-        BoolVariable("execinfo", "Use libexecinfo on systems where glibc is not available", False),
+        BoolVariable("execinfo", "Use libexecinfo on systems where glibc is not available", None),
     ]
 
 
@@ -429,14 +429,20 @@ def configure(env: "Environment"):
     if platform.system() == "Linux":
         env.Append(LIBS=["dl"])
 
-    if not env["execinfo"] and platform.libc_ver()[0] != "glibc":
+    if platform.libc_ver()[0] != "glibc":
         # The default crash handler depends on glibc, so if the host uses
         # a different libc (BSD libc, musl), fall back to libexecinfo.
-        print("Note: Using `execinfo=yes` for the crash handler as required on platforms where glibc is missing.")
-        env["execinfo"] = True
+        if not "execinfo" in env:
+            print("Note: Using `execinfo=yes` for the crash handler as required on platforms where glibc is missing.")
+            env["execinfo"] = True
 
-    if env["execinfo"]:
-        env.Append(LIBS=["execinfo"])
+        if env["execinfo"]:
+            env.Append(LIBS=["execinfo"])
+            env.Append(CPPDEFINES=["CRASH_HANDLER_ENABLED"])
+        else:
+            print("Note: Using `execinfo=no` disables the crash handler on platforms where glibc is missing.")
+    else:
+        env.Append(CPPDEFINES=["CRASH_HANDLER_ENABLED"])
 
     if not env.editor_build:
         import subprocess
