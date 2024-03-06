@@ -72,46 +72,6 @@ Array RenderingServer::_texture_debug_usage_bind() {
 	return arr;
 }
 
-static PackedInt64Array to_int_array(const Vector<ObjectID> &ids) {
-	PackedInt64Array a;
-	a.resize(ids.size());
-	for (int i = 0; i < ids.size(); ++i) {
-		a.write[i] = ids[i];
-	}
-	return a;
-}
-
-PackedInt64Array RenderingServer::_instances_cull_aabb_bind(const AABB &p_aabb, RID p_scenario) const {
-	if (RSG::threaded) {
-		WARN_PRINT_ONCE("Using this function with a threaded renderer hurts performance, as it causes a server stall.");
-	}
-	Vector<ObjectID> ids = instances_cull_aabb(p_aabb, p_scenario);
-	return to_int_array(ids);
-}
-
-PackedInt64Array RenderingServer::_instances_cull_ray_bind(const Vector3 &p_from, const Vector3 &p_to, RID p_scenario) const {
-	if (RSG::threaded) {
-		WARN_PRINT_ONCE("Using this function with a threaded renderer hurts performance, as it causes a server stall.");
-	}
-	Vector<ObjectID> ids = instances_cull_ray(p_from, p_to, p_scenario);
-	return to_int_array(ids);
-}
-
-PackedInt64Array RenderingServer::_instances_cull_convex_bind(const TypedArray<Plane> &p_convex, RID p_scenario) const {
-	if (RSG::threaded) {
-		WARN_PRINT_ONCE("Using this function with a threaded renderer hurts performance, as it causes a server stall.");
-	}
-	Vector<Plane> planes;
-	for (int i = 0; i < p_convex.size(); ++i) {
-		Variant v = p_convex[i];
-		ERR_FAIL_COND_V(v.get_type() != Variant::PLANE, PackedInt64Array());
-		planes.push_back(v);
-	}
-
-	Vector<ObjectID> ids = instances_cull_convex(planes, p_scenario);
-	return to_int_array(ids);
-}
-
 RID RenderingServer::get_test_texture() {
 	if (test_texture.is_valid()) {
 		return test_texture;
@@ -165,143 +125,6 @@ void RenderingServer::_free_internal_rids() {
 	if (test_material.is_valid()) {
 		free(test_material);
 	}
-}
-
-RID RenderingServer::_make_test_cube() {
-	Vector<Vector3> vertices;
-	Vector<Vector3> normals;
-	Vector<float> tangents;
-	Vector<Vector3> uvs;
-
-#define ADD_VTX(m_idx)                           \
-	vertices.push_back(face_points[m_idx]);      \
-	normals.push_back(normal_points[m_idx]);     \
-	tangents.push_back(normal_points[m_idx][1]); \
-	tangents.push_back(normal_points[m_idx][2]); \
-	tangents.push_back(normal_points[m_idx][0]); \
-	tangents.push_back(1.0);                     \
-	uvs.push_back(Vector3(uv_points[m_idx * 2 + 0], uv_points[m_idx * 2 + 1], 0));
-
-	for (int i = 0; i < 6; i++) {
-		Vector3 face_points[4];
-		Vector3 normal_points[4];
-		float uv_points[8] = { 0, 0, 0, 1, 1, 1, 1, 0 };
-
-		for (int j = 0; j < 4; j++) {
-			float v[3];
-			v[0] = 1.0;
-			v[1] = 1 - 2 * ((j >> 1) & 1);
-			v[2] = v[1] * (1 - 2 * (j & 1));
-
-			for (int k = 0; k < 3; k++) {
-				if (i < 3) {
-					face_points[j][(i + k) % 3] = v[k];
-				} else {
-					face_points[3 - j][(i + k) % 3] = -v[k];
-				}
-			}
-			normal_points[j] = Vector3();
-			normal_points[j][i % 3] = (i >= 3 ? -1 : 1);
-		}
-
-		// Tri 1
-		ADD_VTX(0);
-		ADD_VTX(1);
-		ADD_VTX(2);
-		// Tri 2
-		ADD_VTX(2);
-		ADD_VTX(3);
-		ADD_VTX(0);
-	}
-
-	RID test_cube = mesh_create();
-
-	Array d;
-	d.resize(RS::ARRAY_MAX);
-	d[RenderingServer::ARRAY_NORMAL] = normals;
-	d[RenderingServer::ARRAY_TANGENT] = tangents;
-	d[RenderingServer::ARRAY_TEX_UV] = uvs;
-	d[RenderingServer::ARRAY_VERTEX] = vertices;
-
-	Vector<int> indices;
-	indices.resize(vertices.size());
-	for (int i = 0; i < vertices.size(); i++) {
-		indices.set(i, i);
-	}
-	d[RenderingServer::ARRAY_INDEX] = indices;
-
-	mesh_add_surface_from_arrays(test_cube, PRIMITIVE_TRIANGLES, d);
-
-	/*
-	test_material = fixed_material_create();
-	//material_set_flag(material, MATERIAL_FLAG_BILLBOARD_TOGGLE,true);
-	fixed_material_set_texture( test_material, FIXED_MATERIAL_PARAM_DIFFUSE, get_test_texture() );
-	fixed_material_set_param( test_material, FIXED_MATERIAL_PARAM_SPECULAR_EXP, 70 );
-	fixed_material_set_param( test_material, FIXED_MATERIAL_PARAM_EMISSION, Color(0.2,0.2,0.2) );
-
-	fixed_material_set_param( test_material, FIXED_MATERIAL_PARAM_DIFFUSE, Color(1, 1, 1) );
-	fixed_material_set_param( test_material, FIXED_MATERIAL_PARAM_SPECULAR, Color(1,1,1) );
-*/
-	mesh_surface_set_material(test_cube, 0, test_material);
-
-	return test_cube;
-}
-
-RID RenderingServer::make_sphere_mesh(int p_lats, int p_lons, real_t p_radius) {
-	Vector<Vector3> vertices;
-	Vector<Vector3> normals;
-	const double lat_step = Math_TAU / p_lats;
-	const double lon_step = Math_TAU / p_lons;
-
-	for (int i = 1; i <= p_lats; i++) {
-		double lat0 = lat_step * (i - 1) - Math_TAU / 4;
-		double z0 = Math::sin(lat0);
-		double zr0 = Math::cos(lat0);
-
-		double lat1 = lat_step * i - Math_TAU / 4;
-		double z1 = Math::sin(lat1);
-		double zr1 = Math::cos(lat1);
-
-		for (int j = p_lons; j >= 1; j--) {
-			double lng0 = lon_step * (j - 1);
-			double x0 = Math::cos(lng0);
-			double y0 = Math::sin(lng0);
-
-			double lng1 = lon_step * j;
-			double x1 = Math::cos(lng1);
-			double y1 = Math::sin(lng1);
-
-			Vector3 v[4] = {
-				Vector3(x1 * zr0, z0, y1 * zr0),
-				Vector3(x1 * zr1, z1, y1 * zr1),
-				Vector3(x0 * zr1, z1, y0 * zr1),
-				Vector3(x0 * zr0, z0, y0 * zr0)
-			};
-
-#define ADD_POINT(m_idx)         \
-	normals.push_back(v[m_idx]); \
-	vertices.push_back(v[m_idx] * p_radius);
-
-			ADD_POINT(0);
-			ADD_POINT(1);
-			ADD_POINT(2);
-
-			ADD_POINT(2);
-			ADD_POINT(3);
-			ADD_POINT(0);
-		}
-	}
-
-	RID mesh = mesh_create();
-	Array d;
-	d.resize(RS::ARRAY_MAX);
-
-	d[ARRAY_VERTEX] = vertices;
-	d[ARRAY_NORMAL] = normals;
-
-	mesh_add_surface_from_arrays(mesh, PRIMITIVE_TRIANGLES, d);
-
-	return mesh;
 }
 
 RID RenderingServer::get_white_texture() {
@@ -1793,16 +1616,6 @@ Array RenderingServer::mesh_create_arrays_from_surface_data(const SurfaceData &p
 
 	return _get_array_from_surface(format, vertex_data, attrib_data, skin_data, vertex_len, index_data, index_len, p_data.aabb, p_data.uv_scale);
 }
-#if 0
-Array RenderingServer::_mesh_surface_get_skeleton_aabb_bind(RID p_mesh, int p_surface) const {
-	Vector<AABB> vec = RS::get_singleton()->mesh_surface_get_skeleton_aabb(p_mesh, p_surface);
-	Array arr;
-	for (int i = 0; i < vec.size(); i++) {
-		arr[i] = vec[i];
-	}
-	return arr;
-}
-#endif
 
 Rect2 RenderingServer::debug_canvas_item_get_rect(RID p_item) {
 #ifdef TOOLS_ENABLED
@@ -2046,20 +1859,6 @@ Dictionary RenderingServer::_mesh_get_surface(RID p_mesh, int p_idx) {
 	return d;
 }
 
-TypedArray<Dictionary> RenderingServer::_instance_geometry_get_shader_parameter_list(RID p_instance) const {
-	List<PropertyInfo> params;
-	instance_geometry_get_shader_parameter_list(p_instance, &params);
-	return convert_property_list(&params);
-}
-
-TypedArray<Image> RenderingServer::_bake_render_uv2(RID p_base, const TypedArray<RID> &p_material_overrides, const Size2i &p_image_size) {
-	TypedArray<RID> mat_overrides;
-	for (int i = 0; i < p_material_overrides.size(); i++) {
-		mat_overrides.push_back(p_material_overrides[i]);
-	}
-	return bake_render_uv2(p_base, mat_overrides, p_image_size);
-}
-
 void RenderingServer::_particles_set_trail_bind_poses(RID p_particles, const TypedArray<Transform3D> &p_bind_poses) {
 	Vector<Transform3D> tbposes;
 	tbposes.resize(p_bind_poses.size());
@@ -2068,143 +1867,6 @@ void RenderingServer::_particles_set_trail_bind_poses(RID p_particles, const Typ
 	}
 	particles_set_trail_bind_poses(p_particles, tbposes);
 }
-
-Vector<uint8_t> _convert_surface_version_1_to_surface_version_2(uint64_t p_format, Vector<uint8_t> p_vertex_data, uint32_t p_vertex_count, uint32_t p_old_stride, uint32_t p_vertex_size, uint32_t p_normal_size, uint32_t p_position_stride, uint32_t p_normal_tangent_stride) {
-	Vector<uint8_t> new_vertex_data;
-	new_vertex_data.resize(p_vertex_data.size());
-	uint8_t *dst_vertex_ptr = new_vertex_data.ptrw();
-
-	const uint8_t *src_vertex_ptr = p_vertex_data.ptr();
-
-	uint32_t position_size = p_position_stride * p_vertex_count;
-
-	for (uint32_t j = 0; j < RS::ARRAY_COLOR; j++) {
-		if (!(p_format & (1ULL << j))) {
-			continue;
-		}
-		switch (j) {
-			case RS::ARRAY_VERTEX: {
-				if (p_format & RS::ARRAY_FLAG_USE_2D_VERTICES) {
-					for (uint32_t i = 0; i < p_vertex_count; i++) {
-						const float *src = (const float *)&src_vertex_ptr[i * p_old_stride];
-						float *dst = (float *)&dst_vertex_ptr[i * p_position_stride];
-						dst[0] = src[0];
-						dst[1] = src[1];
-					}
-				} else {
-					for (uint32_t i = 0; i < p_vertex_count; i++) {
-						const float *src = (const float *)&src_vertex_ptr[i * p_old_stride];
-						float *dst = (float *)&dst_vertex_ptr[i * p_position_stride];
-						dst[0] = src[0];
-						dst[1] = src[1];
-						dst[2] = src[2];
-					}
-				}
-			} break;
-			case RS::ARRAY_NORMAL: {
-				for (uint32_t i = 0; i < p_vertex_count; i++) {
-					const uint16_t *src = (const uint16_t *)&src_vertex_ptr[i * p_old_stride + p_vertex_size];
-					uint16_t *dst = (uint16_t *)&dst_vertex_ptr[i * p_normal_tangent_stride + position_size];
-
-					dst[0] = src[0];
-					dst[1] = src[1];
-				}
-			} break;
-			case RS::ARRAY_TANGENT: {
-				for (uint32_t i = 0; i < p_vertex_count; i++) {
-					const uint16_t *src = (const uint16_t *)&src_vertex_ptr[i * p_old_stride + p_vertex_size + p_normal_size];
-					uint16_t *dst = (uint16_t *)&dst_vertex_ptr[i * p_normal_tangent_stride + position_size + p_normal_size];
-
-					dst[0] = src[0];
-					dst[1] = src[1];
-				}
-			} break;
-		}
-	}
-	return new_vertex_data;
-}
-
-#ifdef TOOLS_ENABLED
-void RenderingServer::set_surface_upgrade_callback(SurfaceUpgradeCallback p_callback) {
-	surface_upgrade_callback = p_callback;
-}
-
-void RenderingServer::set_warn_on_surface_upgrade(bool p_warn) {
-	warn_on_surface_upgrade = p_warn;
-}
-#endif
-
-#ifndef DISABLE_DEPRECATED
-void RenderingServer::fix_surface_compatibility(SurfaceData &p_surface, const String &p_path) {
-	uint64_t surface_version = p_surface.format & (ARRAY_FLAG_FORMAT_VERSION_MASK << ARRAY_FLAG_FORMAT_VERSION_SHIFT);
-	ERR_FAIL_COND_MSG(surface_version > ARRAY_FLAG_FORMAT_CURRENT_VERSION, "Cannot convert surface with version provided (" + itos((surface_version >> RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT) & RS::ARRAY_FLAG_FORMAT_VERSION_MASK) + ") to current version (" + itos((RS::ARRAY_FLAG_FORMAT_CURRENT_VERSION >> RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT) & RS::ARRAY_FLAG_FORMAT_VERSION_MASK) + ")");
-
-#ifdef TOOLS_ENABLED
-	// Editor callback to ask user about re-saving all meshes.
-	if (surface_upgrade_callback && warn_on_surface_upgrade) {
-		surface_upgrade_callback();
-	}
-
-	if (warn_on_surface_upgrade) {
-		WARN_PRINT_ONCE_ED("At least one surface uses an old surface format and needs to be upgraded. The upgrade happens automatically at load time every time until the mesh is saved again or re-imported. Once saved (or re-imported), this mesh will be incompatible with earlier versions of Godot.");
-
-		if (!p_path.is_empty()) {
-			WARN_PRINT("A surface of " + p_path + " uses an old surface format and needs to be upgraded.");
-		}
-	}
-#endif
-
-	if (surface_version == ARRAY_FLAG_FORMAT_VERSION_1) {
-		// The only difference for now is that Version 1 uses interleaved vertex positions while version 2 does not.
-		// I.e. PNTPNTPNT -> PPPNTNTNT.
-
-		if (p_surface.vertex_data.size() > 0 && p_surface.vertex_count > 0) {
-			int vertex_size = 0;
-			int normal_size = 0;
-			int tangent_size = 0;
-			if (p_surface.format & ARRAY_FORMAT_VERTEX) {
-				if (p_surface.format & ARRAY_FLAG_USE_2D_VERTICES) {
-					vertex_size = sizeof(float) * 2;
-				} else {
-					vertex_size = sizeof(float) * 3;
-				}
-			}
-			if (p_surface.format & ARRAY_FORMAT_NORMAL) {
-				normal_size += sizeof(uint16_t) * 2;
-			}
-			if (p_surface.format & ARRAY_FORMAT_TANGENT) {
-				tangent_size = sizeof(uint16_t) * 2;
-			}
-			int stride = p_surface.vertex_data.size() / p_surface.vertex_count;
-			int position_stride = vertex_size;
-			int normal_tangent_stride = normal_size + tangent_size;
-
-			p_surface.vertex_data = _convert_surface_version_1_to_surface_version_2(p_surface.format, p_surface.vertex_data, p_surface.vertex_count, stride, vertex_size, normal_size, position_stride, normal_tangent_stride);
-
-			if (p_surface.blend_shape_data.size() > 0) {
-				// The size of one blend shape.
-				int divisor = (vertex_size + normal_size + tangent_size) * p_surface.vertex_count;
-				ERR_FAIL_COND((p_surface.blend_shape_data.size() % divisor) != 0);
-
-				uint32_t blend_shape_count = p_surface.blend_shape_data.size() / divisor;
-
-				Vector<uint8_t> new_blend_shape_data;
-				for (uint32_t i = 0; i < blend_shape_count; i++) {
-					Vector<uint8_t> bs_data = p_surface.blend_shape_data.slice(i * divisor, (i + 1) * divisor);
-					Vector<uint8_t> blend_shape = _convert_surface_version_1_to_surface_version_2(p_surface.format, bs_data, p_surface.vertex_count, stride, vertex_size, normal_size, position_stride, normal_tangent_stride);
-					new_blend_shape_data.append_array(blend_shape);
-				}
-
-				ERR_FAIL_COND(p_surface.blend_shape_data.size() != new_blend_shape_data.size());
-
-				p_surface.blend_shape_data = new_blend_shape_data;
-			}
-		}
-	}
-	p_surface.format &= ~(ARRAY_FLAG_FORMAT_VERSION_MASK << ARRAY_FLAG_FORMAT_VERSION_SHIFT);
-	p_surface.format |= ARRAY_FLAG_FORMAT_CURRENT_VERSION & (ARRAY_FLAG_FORMAT_VERSION_MASK << ARRAY_FLAG_FORMAT_VERSION_SHIFT);
-}
-#endif
 
 void RenderingServer::_bind_methods() {
 	BIND_CONSTANT(NO_INDEX_ARRAY);
@@ -2270,11 +1932,8 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("shader_set_default_texture_parameter", "shader", "name", "texture", "index"), &RenderingServer::shader_set_default_texture_parameter, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("shader_get_default_texture_parameter", "shader", "name", "index"), &RenderingServer::shader_get_default_texture_parameter, DEFVAL(0));
 
-	BIND_ENUM_CONSTANT(SHADER_SPATIAL);
 	BIND_ENUM_CONSTANT(SHADER_CANVAS_ITEM);
 	BIND_ENUM_CONSTANT(SHADER_PARTICLES);
-	BIND_ENUM_CONSTANT(SHADER_SKY);
-	BIND_ENUM_CONSTANT(SHADER_FOG);
 	BIND_ENUM_CONSTANT(SHADER_MAX);
 
 	/* MATERIAL */
@@ -2296,7 +1955,6 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("mesh_create"), &RenderingServer::mesh_create);
 	ClassDB::bind_method(D_METHOD("mesh_surface_get_format_offset", "format", "vertex_count", "array_index"), &RenderingServer::mesh_surface_get_format_offset);
 	ClassDB::bind_method(D_METHOD("mesh_surface_get_format_vertex_stride", "format", "vertex_count"), &RenderingServer::mesh_surface_get_format_vertex_stride);
-	ClassDB::bind_method(D_METHOD("mesh_surface_get_format_normal_tangent_stride", "format", "vertex_count"), &RenderingServer::mesh_surface_get_format_normal_tangent_stride);
 	ClassDB::bind_method(D_METHOD("mesh_surface_get_format_attribute_stride", "format", "vertex_count"), &RenderingServer::mesh_surface_get_format_attribute_stride);
 	ClassDB::bind_method(D_METHOD("mesh_surface_get_format_skin_stride", "format", "vertex_count"), &RenderingServer::mesh_surface_get_format_skin_stride);
 	ClassDB::bind_method(D_METHOD("mesh_add_surface", "mesh", "surface"), &RenderingServer::_mesh_add_surface);
@@ -2427,194 +2085,9 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("skeleton_create"), &RenderingServer::skeleton_create);
 	ClassDB::bind_method(D_METHOD("skeleton_allocate_data", "skeleton", "bones", "is_2d_skeleton"), &RenderingServer::skeleton_allocate_data, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("skeleton_get_bone_count", "skeleton"), &RenderingServer::skeleton_get_bone_count);
-	ClassDB::bind_method(D_METHOD("skeleton_bone_set_transform", "skeleton", "bone", "transform"), &RenderingServer::skeleton_bone_set_transform);
-	ClassDB::bind_method(D_METHOD("skeleton_bone_get_transform", "skeleton", "bone"), &RenderingServer::skeleton_bone_get_transform);
 	ClassDB::bind_method(D_METHOD("skeleton_bone_set_transform_2d", "skeleton", "bone", "transform"), &RenderingServer::skeleton_bone_set_transform_2d);
 	ClassDB::bind_method(D_METHOD("skeleton_bone_get_transform_2d", "skeleton", "bone"), &RenderingServer::skeleton_bone_get_transform_2d);
 	ClassDB::bind_method(D_METHOD("skeleton_set_base_transform_2d", "skeleton", "base_transform"), &RenderingServer::skeleton_set_base_transform_2d);
-
-	/* Light API */
-
-	ClassDB::bind_method(D_METHOD("directional_light_create"), &RenderingServer::directional_light_create);
-	ClassDB::bind_method(D_METHOD("omni_light_create"), &RenderingServer::omni_light_create);
-	ClassDB::bind_method(D_METHOD("spot_light_create"), &RenderingServer::spot_light_create);
-
-	ClassDB::bind_method(D_METHOD("light_set_color", "light", "color"), &RenderingServer::light_set_color);
-	ClassDB::bind_method(D_METHOD("light_set_param", "light", "param", "value"), &RenderingServer::light_set_param);
-	ClassDB::bind_method(D_METHOD("light_set_shadow", "light", "enabled"), &RenderingServer::light_set_shadow);
-	ClassDB::bind_method(D_METHOD("light_set_projector", "light", "texture"), &RenderingServer::light_set_projector);
-	ClassDB::bind_method(D_METHOD("light_set_negative", "light", "enable"), &RenderingServer::light_set_negative);
-	ClassDB::bind_method(D_METHOD("light_set_cull_mask", "light", "mask"), &RenderingServer::light_set_cull_mask);
-	ClassDB::bind_method(D_METHOD("light_set_distance_fade", "decal", "enabled", "begin", "shadow", "length"), &RenderingServer::light_set_distance_fade);
-	ClassDB::bind_method(D_METHOD("light_set_reverse_cull_face_mode", "light", "enabled"), &RenderingServer::light_set_reverse_cull_face_mode);
-	ClassDB::bind_method(D_METHOD("light_set_bake_mode", "light", "bake_mode"), &RenderingServer::light_set_bake_mode);
-	ClassDB::bind_method(D_METHOD("light_set_max_sdfgi_cascade", "light", "cascade"), &RenderingServer::light_set_max_sdfgi_cascade);
-
-	ClassDB::bind_method(D_METHOD("light_omni_set_shadow_mode", "light", "mode"), &RenderingServer::light_omni_set_shadow_mode);
-
-	ClassDB::bind_method(D_METHOD("light_directional_set_shadow_mode", "light", "mode"), &RenderingServer::light_directional_set_shadow_mode);
-	ClassDB::bind_method(D_METHOD("light_directional_set_blend_splits", "light", "enable"), &RenderingServer::light_directional_set_blend_splits);
-	ClassDB::bind_method(D_METHOD("light_directional_set_sky_mode", "light", "mode"), &RenderingServer::light_directional_set_sky_mode);
-
-	ClassDB::bind_method(D_METHOD("light_projectors_set_filter", "filter"), &RenderingServer::light_projectors_set_filter);
-
-	BIND_ENUM_CONSTANT(LIGHT_PROJECTOR_FILTER_NEAREST);
-	BIND_ENUM_CONSTANT(LIGHT_PROJECTOR_FILTER_LINEAR);
-	BIND_ENUM_CONSTANT(LIGHT_PROJECTOR_FILTER_NEAREST_MIPMAPS);
-	BIND_ENUM_CONSTANT(LIGHT_PROJECTOR_FILTER_LINEAR_MIPMAPS);
-	BIND_ENUM_CONSTANT(LIGHT_PROJECTOR_FILTER_NEAREST_MIPMAPS_ANISOTROPIC);
-	BIND_ENUM_CONSTANT(LIGHT_PROJECTOR_FILTER_LINEAR_MIPMAPS_ANISOTROPIC);
-
-	BIND_ENUM_CONSTANT(LIGHT_DIRECTIONAL);
-	BIND_ENUM_CONSTANT(LIGHT_OMNI);
-	BIND_ENUM_CONSTANT(LIGHT_SPOT);
-
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_ENERGY);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_INDIRECT_ENERGY);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_VOLUMETRIC_FOG_ENERGY);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SPECULAR);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_RANGE);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SIZE);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_ATTENUATION);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SPOT_ANGLE);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SPOT_ATTENUATION);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_MAX_DISTANCE);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_SPLIT_1_OFFSET);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_SPLIT_2_OFFSET);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_SPLIT_3_OFFSET);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_FADE_START);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_NORMAL_BIAS);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_BIAS);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_PANCAKE_SIZE);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_OPACITY);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_SHADOW_BLUR);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_TRANSMITTANCE_BIAS);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_INTENSITY);
-	BIND_ENUM_CONSTANT(LIGHT_PARAM_MAX);
-
-	BIND_ENUM_CONSTANT(LIGHT_BAKE_DISABLED);
-	BIND_ENUM_CONSTANT(LIGHT_BAKE_STATIC);
-	BIND_ENUM_CONSTANT(LIGHT_BAKE_DYNAMIC);
-
-	BIND_ENUM_CONSTANT(LIGHT_OMNI_SHADOW_DUAL_PARABOLOID);
-	BIND_ENUM_CONSTANT(LIGHT_OMNI_SHADOW_CUBE);
-
-	BIND_ENUM_CONSTANT(LIGHT_DIRECTIONAL_SHADOW_ORTHOGONAL);
-	BIND_ENUM_CONSTANT(LIGHT_DIRECTIONAL_SHADOW_PARALLEL_2_SPLITS);
-	BIND_ENUM_CONSTANT(LIGHT_DIRECTIONAL_SHADOW_PARALLEL_4_SPLITS);
-
-	BIND_ENUM_CONSTANT(LIGHT_DIRECTIONAL_SKY_MODE_LIGHT_AND_SKY);
-	BIND_ENUM_CONSTANT(LIGHT_DIRECTIONAL_SKY_MODE_LIGHT_ONLY);
-	BIND_ENUM_CONSTANT(LIGHT_DIRECTIONAL_SKY_MODE_SKY_ONLY);
-
-	ClassDB::bind_method(D_METHOD("positional_soft_shadow_filter_set_quality", "quality"), &RenderingServer::positional_soft_shadow_filter_set_quality);
-	ClassDB::bind_method(D_METHOD("directional_soft_shadow_filter_set_quality", "quality"), &RenderingServer::directional_soft_shadow_filter_set_quality);
-	ClassDB::bind_method(D_METHOD("directional_shadow_atlas_set_size", "size", "is_16bits"), &RenderingServer::directional_shadow_atlas_set_size);
-
-	BIND_ENUM_CONSTANT(SHADOW_QUALITY_HARD);
-	BIND_ENUM_CONSTANT(SHADOW_QUALITY_SOFT_VERY_LOW);
-	BIND_ENUM_CONSTANT(SHADOW_QUALITY_SOFT_LOW);
-	BIND_ENUM_CONSTANT(SHADOW_QUALITY_SOFT_MEDIUM);
-	BIND_ENUM_CONSTANT(SHADOW_QUALITY_SOFT_HIGH);
-	BIND_ENUM_CONSTANT(SHADOW_QUALITY_SOFT_ULTRA);
-	BIND_ENUM_CONSTANT(SHADOW_QUALITY_MAX);
-
-	/* REFLECTION PROBE */
-
-	ClassDB::bind_method(D_METHOD("reflection_probe_create"), &RenderingServer::reflection_probe_create);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_update_mode", "probe", "mode"), &RenderingServer::reflection_probe_set_update_mode);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_intensity", "probe", "intensity"), &RenderingServer::reflection_probe_set_intensity);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_ambient_mode", "probe", "mode"), &RenderingServer::reflection_probe_set_ambient_mode);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_ambient_color", "probe", "color"), &RenderingServer::reflection_probe_set_ambient_color);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_ambient_energy", "probe", "energy"), &RenderingServer::reflection_probe_set_ambient_energy);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_max_distance", "probe", "distance"), &RenderingServer::reflection_probe_set_max_distance);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_size", "probe", "size"), &RenderingServer::reflection_probe_set_size);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_origin_offset", "probe", "offset"), &RenderingServer::reflection_probe_set_origin_offset);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_as_interior", "probe", "enable"), &RenderingServer::reflection_probe_set_as_interior);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_enable_box_projection", "probe", "enable"), &RenderingServer::reflection_probe_set_enable_box_projection);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_enable_shadows", "probe", "enable"), &RenderingServer::reflection_probe_set_enable_shadows);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_cull_mask", "probe", "layers"), &RenderingServer::reflection_probe_set_cull_mask);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_resolution", "probe", "resolution"), &RenderingServer::reflection_probe_set_resolution);
-	ClassDB::bind_method(D_METHOD("reflection_probe_set_mesh_lod_threshold", "probe", "pixels"), &RenderingServer::reflection_probe_set_mesh_lod_threshold);
-
-	BIND_ENUM_CONSTANT(REFLECTION_PROBE_UPDATE_ONCE);
-	BIND_ENUM_CONSTANT(REFLECTION_PROBE_UPDATE_ALWAYS);
-
-	BIND_ENUM_CONSTANT(REFLECTION_PROBE_AMBIENT_DISABLED);
-	BIND_ENUM_CONSTANT(REFLECTION_PROBE_AMBIENT_ENVIRONMENT);
-	BIND_ENUM_CONSTANT(REFLECTION_PROBE_AMBIENT_COLOR);
-
-	/* DECAL */
-
-	ClassDB::bind_method(D_METHOD("decal_create"), &RenderingServer::decal_create);
-	ClassDB::bind_method(D_METHOD("decal_set_size", "decal", "size"), &RenderingServer::decal_set_size);
-	ClassDB::bind_method(D_METHOD("decal_set_texture", "decal", "type", "texture"), &RenderingServer::decal_set_texture);
-	ClassDB::bind_method(D_METHOD("decal_set_emission_energy", "decal", "energy"), &RenderingServer::decal_set_emission_energy);
-	ClassDB::bind_method(D_METHOD("decal_set_albedo_mix", "decal", "albedo_mix"), &RenderingServer::decal_set_albedo_mix);
-	ClassDB::bind_method(D_METHOD("decal_set_modulate", "decal", "color"), &RenderingServer::decal_set_modulate);
-	ClassDB::bind_method(D_METHOD("decal_set_cull_mask", "decal", "mask"), &RenderingServer::decal_set_cull_mask);
-	ClassDB::bind_method(D_METHOD("decal_set_distance_fade", "decal", "enabled", "begin", "length"), &RenderingServer::decal_set_distance_fade);
-	ClassDB::bind_method(D_METHOD("decal_set_fade", "decal", "above", "below"), &RenderingServer::decal_set_fade);
-	ClassDB::bind_method(D_METHOD("decal_set_normal_fade", "decal", "fade"), &RenderingServer::decal_set_normal_fade);
-
-	ClassDB::bind_method(D_METHOD("decals_set_filter", "filter"), &RenderingServer::decals_set_filter);
-
-	BIND_ENUM_CONSTANT(DECAL_TEXTURE_ALBEDO);
-	BIND_ENUM_CONSTANT(DECAL_TEXTURE_NORMAL);
-	BIND_ENUM_CONSTANT(DECAL_TEXTURE_ORM);
-	BIND_ENUM_CONSTANT(DECAL_TEXTURE_EMISSION);
-	BIND_ENUM_CONSTANT(DECAL_TEXTURE_MAX);
-
-	BIND_ENUM_CONSTANT(DECAL_FILTER_NEAREST);
-	BIND_ENUM_CONSTANT(DECAL_FILTER_LINEAR);
-	BIND_ENUM_CONSTANT(DECAL_FILTER_NEAREST_MIPMAPS);
-	BIND_ENUM_CONSTANT(DECAL_FILTER_LINEAR_MIPMAPS);
-	BIND_ENUM_CONSTANT(DECAL_FILTER_NEAREST_MIPMAPS_ANISOTROPIC);
-	BIND_ENUM_CONSTANT(DECAL_FILTER_LINEAR_MIPMAPS_ANISOTROPIC);
-
-	/* GI API (affects VoxelGI and SDFGI) */
-
-	ClassDB::bind_method(D_METHOD("gi_set_use_half_resolution", "half_resolution"), &RenderingServer::gi_set_use_half_resolution);
-
-	/* VOXEL GI API */
-
-	ClassDB::bind_method(D_METHOD("voxel_gi_create"), &RenderingServer::voxel_gi_create);
-	ClassDB::bind_method(D_METHOD("voxel_gi_allocate_data", "voxel_gi", "to_cell_xform", "aabb", "octree_size", "octree_cells", "data_cells", "distance_field", "level_counts"), &RenderingServer::voxel_gi_allocate_data);
-	ClassDB::bind_method(D_METHOD("voxel_gi_get_octree_size", "voxel_gi"), &RenderingServer::voxel_gi_get_octree_size);
-	ClassDB::bind_method(D_METHOD("voxel_gi_get_octree_cells", "voxel_gi"), &RenderingServer::voxel_gi_get_octree_cells);
-	ClassDB::bind_method(D_METHOD("voxel_gi_get_data_cells", "voxel_gi"), &RenderingServer::voxel_gi_get_data_cells);
-	ClassDB::bind_method(D_METHOD("voxel_gi_get_distance_field", "voxel_gi"), &RenderingServer::voxel_gi_get_distance_field);
-	ClassDB::bind_method(D_METHOD("voxel_gi_get_level_counts", "voxel_gi"), &RenderingServer::voxel_gi_get_level_counts);
-	ClassDB::bind_method(D_METHOD("voxel_gi_get_to_cell_xform", "voxel_gi"), &RenderingServer::voxel_gi_get_to_cell_xform);
-
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_dynamic_range", "voxel_gi", "range"), &RenderingServer::voxel_gi_set_dynamic_range);
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_propagation", "voxel_gi", "amount"), &RenderingServer::voxel_gi_set_propagation);
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_energy", "voxel_gi", "energy"), &RenderingServer::voxel_gi_set_energy);
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_baked_exposure_normalization", "voxel_gi", "baked_exposure"), &RenderingServer::voxel_gi_set_baked_exposure_normalization);
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_bias", "voxel_gi", "bias"), &RenderingServer::voxel_gi_set_bias);
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_normal_bias", "voxel_gi", "bias"), &RenderingServer::voxel_gi_set_normal_bias);
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_interior", "voxel_gi", "enable"), &RenderingServer::voxel_gi_set_interior);
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_use_two_bounces", "voxel_gi", "enable"), &RenderingServer::voxel_gi_set_use_two_bounces);
-
-	ClassDB::bind_method(D_METHOD("voxel_gi_set_quality", "quality"), &RenderingServer::voxel_gi_set_quality);
-
-	BIND_ENUM_CONSTANT(VOXEL_GI_QUALITY_LOW);
-	BIND_ENUM_CONSTANT(VOXEL_GI_QUALITY_HIGH);
-
-	/* LIGHTMAP */
-
-	ClassDB::bind_method(D_METHOD("lightmap_create"), &RenderingServer::lightmap_create);
-	ClassDB::bind_method(D_METHOD("lightmap_set_textures", "lightmap", "light", "uses_sh"), &RenderingServer::lightmap_set_textures);
-	ClassDB::bind_method(D_METHOD("lightmap_set_probe_bounds", "lightmap", "bounds"), &RenderingServer::lightmap_set_probe_bounds);
-	ClassDB::bind_method(D_METHOD("lightmap_set_probe_interior", "lightmap", "interior"), &RenderingServer::lightmap_set_probe_interior);
-	ClassDB::bind_method(D_METHOD("lightmap_set_probe_capture_data", "lightmap", "points", "point_sh", "tetrahedra", "bsp_tree"), &RenderingServer::lightmap_set_probe_capture_data);
-	ClassDB::bind_method(D_METHOD("lightmap_get_probe_capture_points", "lightmap"), &RenderingServer::lightmap_get_probe_capture_points);
-	ClassDB::bind_method(D_METHOD("lightmap_get_probe_capture_sh", "lightmap"), &RenderingServer::lightmap_get_probe_capture_sh);
-	ClassDB::bind_method(D_METHOD("lightmap_get_probe_capture_tetrahedra", "lightmap"), &RenderingServer::lightmap_get_probe_capture_tetrahedra);
-	ClassDB::bind_method(D_METHOD("lightmap_get_probe_capture_bsp_tree", "lightmap"), &RenderingServer::lightmap_get_probe_capture_bsp_tree);
-	ClassDB::bind_method(D_METHOD("lightmap_set_baked_exposure_normalization", "lightmap", "baked_exposure"), &RenderingServer::lightmap_set_baked_exposure_normalization);
-
-	ClassDB::bind_method(D_METHOD("lightmap_set_probe_capture_update_speed", "speed"), &RenderingServer::lightmap_set_probe_capture_update_speed);
 
 	/* PARTICLES API */
 
@@ -2706,47 +2179,9 @@ void RenderingServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(PARTICLES_COLLISION_HEIGHTFIELD_RESOLUTION_8192);
 	BIND_ENUM_CONSTANT(PARTICLES_COLLISION_HEIGHTFIELD_RESOLUTION_MAX);
 
-	/* FOG VOLUMES */
-
-	ClassDB::bind_method(D_METHOD("fog_volume_create"), &RenderingServer::fog_volume_create);
-	ClassDB::bind_method(D_METHOD("fog_volume_set_shape", "fog_volume", "shape"), &RenderingServer::fog_volume_set_shape);
-	ClassDB::bind_method(D_METHOD("fog_volume_set_size", "fog_volume", "size"), &RenderingServer::fog_volume_set_size);
-	ClassDB::bind_method(D_METHOD("fog_volume_set_material", "fog_volume", "material"), &RenderingServer::fog_volume_set_material);
-
-	BIND_ENUM_CONSTANT(FOG_VOLUME_SHAPE_ELLIPSOID);
-	BIND_ENUM_CONSTANT(FOG_VOLUME_SHAPE_CONE);
-	BIND_ENUM_CONSTANT(FOG_VOLUME_SHAPE_CYLINDER);
-	BIND_ENUM_CONSTANT(FOG_VOLUME_SHAPE_BOX);
-	BIND_ENUM_CONSTANT(FOG_VOLUME_SHAPE_WORLD);
-	BIND_ENUM_CONSTANT(FOG_VOLUME_SHAPE_MAX);
-
-	/* VISIBILITY NOTIFIER */
-
-	ClassDB::bind_method(D_METHOD("visibility_notifier_create"), &RenderingServer::visibility_notifier_create);
-	ClassDB::bind_method(D_METHOD("visibility_notifier_set_aabb", "notifier", "aabb"), &RenderingServer::visibility_notifier_set_aabb);
-	ClassDB::bind_method(D_METHOD("visibility_notifier_set_callbacks", "notifier", "enter_callable", "exit_callable"), &RenderingServer::visibility_notifier_set_callbacks);
-
-	/* OCCLUDER */
-
-	ClassDB::bind_method(D_METHOD("occluder_create"), &RenderingServer::occluder_create);
-	ClassDB::bind_method(D_METHOD("occluder_set_mesh", "occluder", "vertices", "indices"), &RenderingServer::occluder_set_mesh);
-
-	/* CAMERA */
-
-	ClassDB::bind_method(D_METHOD("camera_create"), &RenderingServer::camera_create);
-	ClassDB::bind_method(D_METHOD("camera_set_perspective", "camera", "fovy_degrees", "z_near", "z_far"), &RenderingServer::camera_set_perspective);
-	ClassDB::bind_method(D_METHOD("camera_set_orthogonal", "camera", "size", "z_near", "z_far"), &RenderingServer::camera_set_orthogonal);
-	ClassDB::bind_method(D_METHOD("camera_set_frustum", "camera", "size", "offset", "z_near", "z_far"), &RenderingServer::camera_set_frustum);
-	ClassDB::bind_method(D_METHOD("camera_set_transform", "camera", "transform"), &RenderingServer::camera_set_transform);
-	ClassDB::bind_method(D_METHOD("camera_set_cull_mask", "camera", "layers"), &RenderingServer::camera_set_cull_mask);
-	ClassDB::bind_method(D_METHOD("camera_set_environment", "camera", "env"), &RenderingServer::camera_set_environment);
-	ClassDB::bind_method(D_METHOD("camera_set_camera_attributes", "camera", "effects"), &RenderingServer::camera_set_camera_attributes);
-	ClassDB::bind_method(D_METHOD("camera_set_use_vertical_aspect", "camera", "enable"), &RenderingServer::camera_set_use_vertical_aspect);
-
 	/* VIEWPORT */
 
 	ClassDB::bind_method(D_METHOD("viewport_create"), &RenderingServer::viewport_create);
-	ClassDB::bind_method(D_METHOD("viewport_set_use_xr", "viewport", "use_xr"), &RenderingServer::viewport_set_use_xr);
 	ClassDB::bind_method(D_METHOD("viewport_set_size", "viewport", "width", "height"), &RenderingServer::viewport_set_size);
 	ClassDB::bind_method(D_METHOD("viewport_set_active", "viewport", "active"), &RenderingServer::viewport_set_active);
 	ClassDB::bind_method(D_METHOD("viewport_set_parent_viewport", "viewport", "parent_viewport"), &RenderingServer::viewport_set_parent_viewport);
@@ -2754,19 +2189,12 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("viewport_set_render_direct_to_screen", "viewport", "enabled"), &RenderingServer::viewport_set_render_direct_to_screen);
 	ClassDB::bind_method(D_METHOD("viewport_set_canvas_cull_mask", "viewport", "canvas_cull_mask"), &RenderingServer::viewport_set_canvas_cull_mask);
 
-	ClassDB::bind_method(D_METHOD("viewport_set_scaling_3d_mode", "viewport", "scaling_3d_mode"), &RenderingServer::viewport_set_scaling_3d_mode);
-	ClassDB::bind_method(D_METHOD("viewport_set_scaling_3d_scale", "viewport", "scale"), &RenderingServer::viewport_set_scaling_3d_scale);
-	ClassDB::bind_method(D_METHOD("viewport_set_fsr_sharpness", "viewport", "sharpness"), &RenderingServer::viewport_set_fsr_sharpness);
-	ClassDB::bind_method(D_METHOD("viewport_set_texture_mipmap_bias", "viewport", "mipmap_bias"), &RenderingServer::viewport_set_texture_mipmap_bias);
 	ClassDB::bind_method(D_METHOD("viewport_set_update_mode", "viewport", "update_mode"), &RenderingServer::viewport_set_update_mode);
 	ClassDB::bind_method(D_METHOD("viewport_set_clear_mode", "viewport", "clear_mode"), &RenderingServer::viewport_set_clear_mode);
 	ClassDB::bind_method(D_METHOD("viewport_get_render_target", "viewport"), &RenderingServer::viewport_get_render_target);
 	ClassDB::bind_method(D_METHOD("viewport_get_texture", "viewport"), &RenderingServer::viewport_get_texture);
-	ClassDB::bind_method(D_METHOD("viewport_set_disable_3d", "viewport", "disable"), &RenderingServer::viewport_set_disable_3d);
 	ClassDB::bind_method(D_METHOD("viewport_set_disable_2d", "viewport", "disable"), &RenderingServer::viewport_set_disable_2d);
-	ClassDB::bind_method(D_METHOD("viewport_set_environment_mode", "viewport", "mode"), &RenderingServer::viewport_set_environment_mode);
 	ClassDB::bind_method(D_METHOD("viewport_attach_camera", "viewport", "camera"), &RenderingServer::viewport_attach_camera);
-	ClassDB::bind_method(D_METHOD("viewport_set_scenario", "viewport", "scenario"), &RenderingServer::viewport_set_scenario);
 	ClassDB::bind_method(D_METHOD("viewport_attach_canvas", "viewport", "canvas"), &RenderingServer::viewport_attach_canvas);
 	ClassDB::bind_method(D_METHOD("viewport_remove_canvas", "viewport", "canvas"), &RenderingServer::viewport_remove_canvas);
 	ClassDB::bind_method(D_METHOD("viewport_set_snap_2d_transforms_to_pixel", "viewport", "enabled"), &RenderingServer::viewport_set_snap_2d_transforms_to_pixel);
@@ -2783,17 +2211,7 @@ void RenderingServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("viewport_set_sdf_oversize_and_scale", "viewport", "oversize", "scale"), &RenderingServer::viewport_set_sdf_oversize_and_scale);
 
-	ClassDB::bind_method(D_METHOD("viewport_set_positional_shadow_atlas_size", "viewport", "size", "use_16_bits"), &RenderingServer::viewport_set_positional_shadow_atlas_size, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("viewport_set_positional_shadow_atlas_quadrant_subdivision", "viewport", "quadrant", "subdivision"), &RenderingServer::viewport_set_positional_shadow_atlas_quadrant_subdivision);
-	ClassDB::bind_method(D_METHOD("viewport_set_msaa_3d", "viewport", "msaa"), &RenderingServer::viewport_set_msaa_3d);
 	ClassDB::bind_method(D_METHOD("viewport_set_msaa_2d", "viewport", "msaa"), &RenderingServer::viewport_set_msaa_2d);
-	ClassDB::bind_method(D_METHOD("viewport_set_use_hdr_2d", "viewport", "enabled"), &RenderingServer::viewport_set_use_hdr_2d);
-	ClassDB::bind_method(D_METHOD("viewport_set_screen_space_aa", "viewport", "mode"), &RenderingServer::viewport_set_screen_space_aa);
-	ClassDB::bind_method(D_METHOD("viewport_set_use_taa", "viewport", "enable"), &RenderingServer::viewport_set_use_taa);
-	ClassDB::bind_method(D_METHOD("viewport_set_use_debanding", "viewport", "enable"), &RenderingServer::viewport_set_use_debanding);
-	ClassDB::bind_method(D_METHOD("viewport_set_use_occlusion_culling", "viewport", "enable"), &RenderingServer::viewport_set_use_occlusion_culling);
-	ClassDB::bind_method(D_METHOD("viewport_set_occlusion_rays_per_thread", "rays_per_thread"), &RenderingServer::viewport_set_occlusion_rays_per_thread);
-	ClassDB::bind_method(D_METHOD("viewport_set_occlusion_culling_build_quality", "quality"), &RenderingServer::viewport_set_occlusion_culling_build_quality);
 
 	ClassDB::bind_method(D_METHOD("viewport_get_render_info", "viewport", "type", "info"), &RenderingServer::viewport_get_render_info);
 	ClassDB::bind_method(D_METHOD("viewport_set_debug_draw", "viewport", "draw"), &RenderingServer::viewport_set_debug_draw);
@@ -2802,14 +2220,6 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("viewport_get_measured_render_time_cpu", "viewport"), &RenderingServer::viewport_get_measured_render_time_cpu);
 
 	ClassDB::bind_method(D_METHOD("viewport_get_measured_render_time_gpu", "viewport"), &RenderingServer::viewport_get_measured_render_time_gpu);
-
-	ClassDB::bind_method(D_METHOD("viewport_set_vrs_mode", "viewport", "mode"), &RenderingServer::viewport_set_vrs_mode);
-	ClassDB::bind_method(D_METHOD("viewport_set_vrs_texture", "viewport", "texture"), &RenderingServer::viewport_set_vrs_texture);
-
-	BIND_ENUM_CONSTANT(VIEWPORT_SCALING_3D_MODE_BILINEAR);
-	BIND_ENUM_CONSTANT(VIEWPORT_SCALING_3D_MODE_FSR);
-	BIND_ENUM_CONSTANT(VIEWPORT_SCALING_3D_MODE_FSR2);
-	BIND_ENUM_CONSTANT(VIEWPORT_SCALING_3D_MODE_MAX);
 
 	BIND_ENUM_CONSTANT(VIEWPORT_UPDATE_DISABLED);
 	BIND_ENUM_CONSTANT(VIEWPORT_UPDATE_ONCE); // Then goes to disabled); must be manually updated.
@@ -2820,11 +2230,6 @@ void RenderingServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(VIEWPORT_CLEAR_ALWAYS);
 	BIND_ENUM_CONSTANT(VIEWPORT_CLEAR_NEVER);
 	BIND_ENUM_CONSTANT(VIEWPORT_CLEAR_ONLY_NEXT_FRAME);
-
-	BIND_ENUM_CONSTANT(VIEWPORT_ENVIRONMENT_DISABLED);
-	BIND_ENUM_CONSTANT(VIEWPORT_ENVIRONMENT_ENABLED);
-	BIND_ENUM_CONSTANT(VIEWPORT_ENVIRONMENT_INHERIT);
-	BIND_ENUM_CONSTANT(VIEWPORT_ENVIRONMENT_MAX);
 
 	BIND_ENUM_CONSTANT(VIEWPORT_SDF_OVERSIZE_100_PERCENT);
 	BIND_ENUM_CONSTANT(VIEWPORT_SDF_OVERSIZE_120_PERCENT);
@@ -2866,11 +2271,6 @@ void RenderingServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_OVERDRAW);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_WIREFRAME);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_NORMAL_BUFFER);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_VOXEL_GI_ALBEDO);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_VOXEL_GI_LIGHTING);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_VOXEL_GI_EMISSION);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_SHADOW_ATLAS);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_DIRECTIONAL_SHADOW_ATLAS);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_SCENE_LUMINANCE);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_SSAO);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_SSIL);
@@ -2878,158 +2278,14 @@ void RenderingServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_DECAL_ATLAS);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_SDFGI);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_SDFGI_PROBES);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_GI_BUFFER);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_DISABLE_LOD);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_CLUSTER_OMNI_LIGHTS);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_CLUSTER_SPOT_LIGHTS);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_CLUSTER_DECALS);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_CLUSTER_REFLECTION_PROBES);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_OCCLUDERS);
 	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_MOTION_VECTORS);
-	BIND_ENUM_CONSTANT(VIEWPORT_DEBUG_DRAW_INTERNAL_BUFFER);
-
-	BIND_ENUM_CONSTANT(VIEWPORT_VRS_DISABLED);
-	BIND_ENUM_CONSTANT(VIEWPORT_VRS_TEXTURE);
-	BIND_ENUM_CONSTANT(VIEWPORT_VRS_XR);
-	BIND_ENUM_CONSTANT(VIEWPORT_VRS_MAX);
-
-	/* SKY API */
-
-	ClassDB::bind_method(D_METHOD("sky_create"), &RenderingServer::sky_create);
-	ClassDB::bind_method(D_METHOD("sky_set_radiance_size", "sky", "radiance_size"), &RenderingServer::sky_set_radiance_size);
-	ClassDB::bind_method(D_METHOD("sky_set_mode", "sky", "mode"), &RenderingServer::sky_set_mode);
-	ClassDB::bind_method(D_METHOD("sky_set_material", "sky", "material"), &RenderingServer::sky_set_material);
-	ClassDB::bind_method(D_METHOD("sky_bake_panorama", "sky", "energy", "bake_irradiance", "size"), &RenderingServer::sky_bake_panorama);
-
-	BIND_ENUM_CONSTANT(SKY_MODE_AUTOMATIC);
-	BIND_ENUM_CONSTANT(SKY_MODE_QUALITY);
-	BIND_ENUM_CONSTANT(SKY_MODE_INCREMENTAL);
-	BIND_ENUM_CONSTANT(SKY_MODE_REALTIME);
-
-	/* ENVIRONMENT */
-
-	ClassDB::bind_method(D_METHOD("environment_create"), &RenderingServer::environment_create);
-	ClassDB::bind_method(D_METHOD("environment_set_background", "env", "bg"), &RenderingServer::environment_set_background);
-	ClassDB::bind_method(D_METHOD("environment_set_sky", "env", "sky"), &RenderingServer::environment_set_sky);
-	ClassDB::bind_method(D_METHOD("environment_set_sky_custom_fov", "env", "scale"), &RenderingServer::environment_set_sky_custom_fov);
-	ClassDB::bind_method(D_METHOD("environment_set_sky_orientation", "env", "orientation"), &RenderingServer::environment_set_sky_orientation);
-	ClassDB::bind_method(D_METHOD("environment_set_bg_color", "env", "color"), &RenderingServer::environment_set_bg_color);
-	ClassDB::bind_method(D_METHOD("environment_set_bg_energy", "env", "multiplier", "exposure_value"), &RenderingServer::environment_set_bg_energy);
-	ClassDB::bind_method(D_METHOD("environment_set_canvas_max_layer", "env", "max_layer"), &RenderingServer::environment_set_canvas_max_layer);
-	ClassDB::bind_method(D_METHOD("environment_set_ambient_light", "env", "color", "ambient", "energy", "sky_contibution", "reflection_source"), &RenderingServer::environment_set_ambient_light, DEFVAL(RS::ENV_AMBIENT_SOURCE_BG), DEFVAL(1.0), DEFVAL(0.0), DEFVAL(RS::ENV_REFLECTION_SOURCE_BG));
-	ClassDB::bind_method(D_METHOD("environment_set_glow", "env", "enable", "levels", "intensity", "strength", "mix", "bloom_threshold", "blend_mode", "hdr_bleed_threshold", "hdr_bleed_scale", "hdr_luminance_cap", "glow_map_strength", "glow_map"), &RenderingServer::environment_set_glow);
-	ClassDB::bind_method(D_METHOD("environment_set_tonemap", "env", "tone_mapper", "exposure", "white"), &RenderingServer::environment_set_tonemap);
-	ClassDB::bind_method(D_METHOD("environment_set_adjustment", "env", "enable", "brightness", "contrast", "saturation", "use_1d_color_correction", "color_correction"), &RenderingServer::environment_set_adjustment);
-	ClassDB::bind_method(D_METHOD("environment_set_ssr", "env", "enable", "max_steps", "fade_in", "fade_out", "depth_tolerance"), &RenderingServer::environment_set_ssr);
-	ClassDB::bind_method(D_METHOD("environment_set_ssao", "env", "enable", "radius", "intensity", "power", "detail", "horizon", "sharpness", "light_affect", "ao_channel_affect"), &RenderingServer::environment_set_ssao);
-	ClassDB::bind_method(D_METHOD("environment_set_fog", "env", "enable", "light_color", "light_energy", "sun_scatter", "density", "height", "height_density", "aerial_perspective", "sky_affect"), &RenderingServer::environment_set_fog);
-	ClassDB::bind_method(D_METHOD("environment_set_sdfgi", "env", "enable", "cascades", "min_cell_size", "y_scale", "use_occlusion", "bounce_feedback", "read_sky", "energy", "normal_bias", "probe_bias"), &RenderingServer::environment_set_sdfgi);
-	ClassDB::bind_method(D_METHOD("environment_set_volumetric_fog", "env", "enable", "density", "albedo", "emission", "emission_energy", "anisotropy", "length", "p_detail_spread", "gi_inject", "temporal_reprojection", "temporal_reprojection_amount", "ambient_inject", "sky_affect"), &RenderingServer::environment_set_volumetric_fog);
-
-	ClassDB::bind_method(D_METHOD("environment_glow_set_use_bicubic_upscale", "enable"), &RenderingServer::environment_glow_set_use_bicubic_upscale);
-	ClassDB::bind_method(D_METHOD("environment_set_ssr_roughness_quality", "quality"), &RenderingServer::environment_set_ssr_roughness_quality);
-	ClassDB::bind_method(D_METHOD("environment_set_ssao_quality", "quality", "half_size", "adaptive_target", "blur_passes", "fadeout_from", "fadeout_to"), &RenderingServer::environment_set_ssao_quality);
-	ClassDB::bind_method(D_METHOD("environment_set_ssil_quality", "quality", "half_size", "adaptive_target", "blur_passes", "fadeout_from", "fadeout_to"), &RenderingServer::environment_set_ssil_quality);
-	ClassDB::bind_method(D_METHOD("environment_set_sdfgi_ray_count", "ray_count"), &RenderingServer::environment_set_sdfgi_ray_count);
-	ClassDB::bind_method(D_METHOD("environment_set_sdfgi_frames_to_converge", "frames"), &RenderingServer::environment_set_sdfgi_frames_to_converge);
-	ClassDB::bind_method(D_METHOD("environment_set_sdfgi_frames_to_update_light", "frames"), &RenderingServer::environment_set_sdfgi_frames_to_update_light);
-	ClassDB::bind_method(D_METHOD("environment_set_volumetric_fog_volume_size", "size", "depth"), &RenderingServer::environment_set_volumetric_fog_volume_size);
-	ClassDB::bind_method(D_METHOD("environment_set_volumetric_fog_filter_active", "active"), &RenderingServer::environment_set_volumetric_fog_filter_active);
-
-	ClassDB::bind_method(D_METHOD("environment_bake_panorama", "environment", "bake_irradiance", "size"), &RenderingServer::environment_bake_panorama);
-
-	ClassDB::bind_method(D_METHOD("screen_space_roughness_limiter_set_active", "enable", "amount", "limit"), &RenderingServer::screen_space_roughness_limiter_set_active);
-	ClassDB::bind_method(D_METHOD("sub_surface_scattering_set_quality", "quality"), &RenderingServer::sub_surface_scattering_set_quality);
-	ClassDB::bind_method(D_METHOD("sub_surface_scattering_set_scale", "scale", "depth_scale"), &RenderingServer::sub_surface_scattering_set_scale);
-
-	BIND_ENUM_CONSTANT(ENV_BG_CLEAR_COLOR);
-	BIND_ENUM_CONSTANT(ENV_BG_COLOR);
-	BIND_ENUM_CONSTANT(ENV_BG_SKY);
-	BIND_ENUM_CONSTANT(ENV_BG_CANVAS);
-	BIND_ENUM_CONSTANT(ENV_BG_KEEP);
-	BIND_ENUM_CONSTANT(ENV_BG_CAMERA_FEED);
-	BIND_ENUM_CONSTANT(ENV_BG_MAX);
-
-	BIND_ENUM_CONSTANT(ENV_AMBIENT_SOURCE_BG);
-	BIND_ENUM_CONSTANT(ENV_AMBIENT_SOURCE_DISABLED);
-	BIND_ENUM_CONSTANT(ENV_AMBIENT_SOURCE_COLOR);
-	BIND_ENUM_CONSTANT(ENV_AMBIENT_SOURCE_SKY);
-
-	BIND_ENUM_CONSTANT(ENV_REFLECTION_SOURCE_BG);
-	BIND_ENUM_CONSTANT(ENV_REFLECTION_SOURCE_DISABLED);
-	BIND_ENUM_CONSTANT(ENV_REFLECTION_SOURCE_SKY);
-
-	BIND_ENUM_CONSTANT(ENV_GLOW_BLEND_MODE_ADDITIVE);
-	BIND_ENUM_CONSTANT(ENV_GLOW_BLEND_MODE_SCREEN);
-	BIND_ENUM_CONSTANT(ENV_GLOW_BLEND_MODE_SOFTLIGHT);
-	BIND_ENUM_CONSTANT(ENV_GLOW_BLEND_MODE_REPLACE);
-	BIND_ENUM_CONSTANT(ENV_GLOW_BLEND_MODE_MIX);
-
-	BIND_ENUM_CONSTANT(ENV_TONE_MAPPER_LINEAR);
-	BIND_ENUM_CONSTANT(ENV_TONE_MAPPER_REINHARD);
-	BIND_ENUM_CONSTANT(ENV_TONE_MAPPER_FILMIC);
-	BIND_ENUM_CONSTANT(ENV_TONE_MAPPER_ACES);
-
-	BIND_ENUM_CONSTANT(ENV_SSR_ROUGHNESS_QUALITY_DISABLED);
-	BIND_ENUM_CONSTANT(ENV_SSR_ROUGHNESS_QUALITY_LOW);
-	BIND_ENUM_CONSTANT(ENV_SSR_ROUGHNESS_QUALITY_MEDIUM);
-	BIND_ENUM_CONSTANT(ENV_SSR_ROUGHNESS_QUALITY_HIGH);
-
-	BIND_ENUM_CONSTANT(ENV_SSAO_QUALITY_VERY_LOW);
-	BIND_ENUM_CONSTANT(ENV_SSAO_QUALITY_LOW);
-	BIND_ENUM_CONSTANT(ENV_SSAO_QUALITY_MEDIUM);
-	BIND_ENUM_CONSTANT(ENV_SSAO_QUALITY_HIGH);
-	BIND_ENUM_CONSTANT(ENV_SSAO_QUALITY_ULTRA);
-
-	BIND_ENUM_CONSTANT(ENV_SSIL_QUALITY_VERY_LOW);
-	BIND_ENUM_CONSTANT(ENV_SSIL_QUALITY_LOW);
-	BIND_ENUM_CONSTANT(ENV_SSIL_QUALITY_MEDIUM);
-	BIND_ENUM_CONSTANT(ENV_SSIL_QUALITY_HIGH);
-	BIND_ENUM_CONSTANT(ENV_SSIL_QUALITY_ULTRA);
-
-	BIND_ENUM_CONSTANT(ENV_SDFGI_Y_SCALE_50_PERCENT);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_Y_SCALE_75_PERCENT);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_Y_SCALE_100_PERCENT);
-
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_4);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_8);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_16);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_32);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_64);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_96);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_128);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_RAY_COUNT_MAX);
-
-	BIND_ENUM_CONSTANT(ENV_SDFGI_CONVERGE_IN_5_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_CONVERGE_IN_10_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_CONVERGE_IN_15_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_CONVERGE_IN_20_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_CONVERGE_IN_25_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_CONVERGE_IN_30_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_CONVERGE_MAX);
-
-	BIND_ENUM_CONSTANT(ENV_SDFGI_UPDATE_LIGHT_IN_1_FRAME);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_UPDATE_LIGHT_IN_2_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_UPDATE_LIGHT_IN_4_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_UPDATE_LIGHT_IN_8_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_UPDATE_LIGHT_IN_16_FRAMES);
-	BIND_ENUM_CONSTANT(ENV_SDFGI_UPDATE_LIGHT_MAX);
-
-	BIND_ENUM_CONSTANT(SUB_SURFACE_SCATTERING_QUALITY_DISABLED);
-	BIND_ENUM_CONSTANT(SUB_SURFACE_SCATTERING_QUALITY_LOW);
-	BIND_ENUM_CONSTANT(SUB_SURFACE_SCATTERING_QUALITY_MEDIUM);
-	BIND_ENUM_CONSTANT(SUB_SURFACE_SCATTERING_QUALITY_HIGH);
 
 	/* CAMERA EFFECTS */
-
-	ClassDB::bind_method(D_METHOD("camera_attributes_create"), &RenderingServer::camera_attributes_create);
-
-	ClassDB::bind_method(D_METHOD("camera_attributes_set_dof_blur_quality", "quality", "use_jitter"), &RenderingServer::camera_attributes_set_dof_blur_quality);
-	ClassDB::bind_method(D_METHOD("camera_attributes_set_dof_blur_bokeh_shape", "shape"), &RenderingServer::camera_attributes_set_dof_blur_bokeh_shape);
-
-	ClassDB::bind_method(D_METHOD("camera_attributes_set_dof_blur", "camera_attributes", "far_enable", "far_distance", "far_transition", "near_enable", "near_distance", "near_transition", "amount"), &RenderingServer::camera_attributes_set_dof_blur);
-	ClassDB::bind_method(D_METHOD("camera_attributes_set_exposure", "camera_attributes", "multiplier", "normalization"), &RenderingServer::camera_attributes_set_exposure);
-	ClassDB::bind_method(D_METHOD("camera_attributes_set_auto_exposure", "camera_attributes", "enable", "min_sensitivity", "max_sensitivity", "speed", "scale"), &RenderingServer::camera_attributes_set_auto_exposure);
 
 	BIND_ENUM_CONSTANT(DOF_BOKEH_BOX);
 	BIND_ENUM_CONSTANT(DOF_BOKEH_HEXAGON);
@@ -3040,19 +2296,9 @@ void RenderingServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(DOF_BLUR_QUALITY_MEDIUM);
 	BIND_ENUM_CONSTANT(DOF_BLUR_QUALITY_HIGH);
 
-	/* SCENARIO */
-
-	ClassDB::bind_method(D_METHOD("scenario_create"), &RenderingServer::scenario_create);
-	ClassDB::bind_method(D_METHOD("scenario_set_environment", "scenario", "environment"), &RenderingServer::scenario_set_environment);
-	ClassDB::bind_method(D_METHOD("scenario_set_fallback_environment", "scenario", "environment"), &RenderingServer::scenario_set_fallback_environment);
-	ClassDB::bind_method(D_METHOD("scenario_set_camera_attributes", "scenario", "effects"), &RenderingServer::scenario_set_camera_attributes);
-
 	/* INSTANCE */
 
-	ClassDB::bind_method(D_METHOD("instance_create2", "base", "scenario"), &RenderingServer::instance_create2);
 	ClassDB::bind_method(D_METHOD("instance_create"), &RenderingServer::instance_create);
-	ClassDB::bind_method(D_METHOD("instance_set_base", "instance", "base"), &RenderingServer::instance_set_base);
-	ClassDB::bind_method(D_METHOD("instance_set_scenario", "instance", "scenario"), &RenderingServer::instance_set_scenario);
 	ClassDB::bind_method(D_METHOD("instance_set_layer_mask", "instance", "mask"), &RenderingServer::instance_set_layer_mask);
 	ClassDB::bind_method(D_METHOD("instance_set_pivot_data", "instance", "sorting_offset", "use_aabb_center"), &RenderingServer::instance_set_pivot_data);
 	ClassDB::bind_method(D_METHOD("instance_set_transform", "instance", "transform"), &RenderingServer::instance_set_transform);
@@ -3061,8 +2307,6 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("instance_set_surface_override_material", "instance", "surface", "material"), &RenderingServer::instance_set_surface_override_material);
 	ClassDB::bind_method(D_METHOD("instance_set_visible", "instance", "visible"), &RenderingServer::instance_set_visible);
 	ClassDB::bind_method(D_METHOD("instance_geometry_set_transparency", "instance", "transparency"), &RenderingServer::instance_geometry_set_transparency);
-
-	ClassDB::bind_method(D_METHOD("instance_set_custom_aabb", "instance", "aabb"), &RenderingServer::instance_set_custom_aabb);
 
 	ClassDB::bind_method(D_METHOD("instance_attach_skeleton", "instance", "skeleton"), &RenderingServer::instance_attach_skeleton);
 	ClassDB::bind_method(D_METHOD("instance_set_extra_visibility_margin", "instance", "margin"), &RenderingServer::instance_set_extra_visibility_margin);
@@ -3074,31 +2318,19 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("instance_geometry_set_material_override", "instance", "material"), &RenderingServer::instance_geometry_set_material_override);
 	ClassDB::bind_method(D_METHOD("instance_geometry_set_material_overlay", "instance", "material"), &RenderingServer::instance_geometry_set_material_overlay);
 	ClassDB::bind_method(D_METHOD("instance_geometry_set_visibility_range", "instance", "min", "max", "min_margin", "max_margin", "fade_mode"), &RenderingServer::instance_geometry_set_visibility_range);
-	ClassDB::bind_method(D_METHOD("instance_geometry_set_lightmap", "instance", "lightmap", "lightmap_uv_scale", "lightmap_slice"), &RenderingServer::instance_geometry_set_lightmap);
 	ClassDB::bind_method(D_METHOD("instance_geometry_set_lod_bias", "instance", "lod_bias"), &RenderingServer::instance_geometry_set_lod_bias);
 
 	ClassDB::bind_method(D_METHOD("instance_geometry_set_shader_parameter", "instance", "parameter", "value"), &RenderingServer::instance_geometry_set_shader_parameter);
 	ClassDB::bind_method(D_METHOD("instance_geometry_get_shader_parameter", "instance", "parameter"), &RenderingServer::instance_geometry_get_shader_parameter);
 	ClassDB::bind_method(D_METHOD("instance_geometry_get_shader_parameter_default_value", "instance", "parameter"), &RenderingServer::instance_geometry_get_shader_parameter_default_value);
-	ClassDB::bind_method(D_METHOD("instance_geometry_get_shader_parameter_list", "instance"), &RenderingServer::_instance_geometry_get_shader_parameter_list);
-
-	ClassDB::bind_method(D_METHOD("instances_cull_aabb", "aabb", "scenario"), &RenderingServer::_instances_cull_aabb_bind, DEFVAL(RID()));
-	ClassDB::bind_method(D_METHOD("instances_cull_ray", "from", "to", "scenario"), &RenderingServer::_instances_cull_ray_bind, DEFVAL(RID()));
-	ClassDB::bind_method(D_METHOD("instances_cull_convex", "convex", "scenario"), &RenderingServer::_instances_cull_convex_bind, DEFVAL(RID()));
 
 	BIND_ENUM_CONSTANT(INSTANCE_NONE);
 	BIND_ENUM_CONSTANT(INSTANCE_MESH);
 	BIND_ENUM_CONSTANT(INSTANCE_MULTIMESH);
 	BIND_ENUM_CONSTANT(INSTANCE_PARTICLES);
 	BIND_ENUM_CONSTANT(INSTANCE_PARTICLES_COLLISION);
-	BIND_ENUM_CONSTANT(INSTANCE_LIGHT);
-	BIND_ENUM_CONSTANT(INSTANCE_REFLECTION_PROBE);
-	BIND_ENUM_CONSTANT(INSTANCE_DECAL);
-	BIND_ENUM_CONSTANT(INSTANCE_VOXEL_GI);
-	BIND_ENUM_CONSTANT(INSTANCE_LIGHTMAP);
 	BIND_ENUM_CONSTANT(INSTANCE_OCCLUDER);
 	BIND_ENUM_CONSTANT(INSTANCE_VISIBLITY_NOTIFIER);
-	BIND_ENUM_CONSTANT(INSTANCE_FOG_VOLUME);
 	BIND_ENUM_CONSTANT(INSTANCE_MAX);
 
 	BIND_ENUM_CONSTANT(INSTANCE_GEOMETRY_MASK);
@@ -3117,15 +2349,6 @@ void RenderingServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(VISIBILITY_RANGE_FADE_DISABLED);
 	BIND_ENUM_CONSTANT(VISIBILITY_RANGE_FADE_SELF);
 	BIND_ENUM_CONSTANT(VISIBILITY_RANGE_FADE_DEPENDENCIES);
-
-	/* Bake 3D Object */
-
-	ClassDB::bind_method(D_METHOD("bake_render_uv2", "base", "material_overrides", "image_size"), &RenderingServer::bake_render_uv2);
-
-	BIND_ENUM_CONSTANT(BAKE_CHANNEL_ALBEDO_ALPHA);
-	BIND_ENUM_CONSTANT(BAKE_CHANNEL_NORMAL);
-	BIND_ENUM_CONSTANT(BAKE_CHANNEL_ORM);
-	BIND_ENUM_CONSTANT(BAKE_CHANNEL_EMISSION);
 
 	/* CANVAS (2D) */
 
@@ -3334,9 +2557,6 @@ void RenderingServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_video_adapter_type"), &RenderingServer::get_video_adapter_type);
 	ClassDB::bind_method(D_METHOD("get_video_adapter_api_version"), &RenderingServer::get_video_adapter_api_version);
 
-	ClassDB::bind_method(D_METHOD("make_sphere_mesh", "latitudes", "longitudes", "radius"), &RenderingServer::make_sphere_mesh);
-	ClassDB::bind_method(D_METHOD("get_test_cube"), &RenderingServer::get_test_cube);
-
 	ClassDB::bind_method(D_METHOD("get_test_texture"), &RenderingServer::get_test_texture);
 	ClassDB::bind_method(D_METHOD("get_white_texture"), &RenderingServer::get_white_texture);
 
@@ -3405,13 +2625,6 @@ void RenderingServer::mesh_add_surface_from_planes(RID p_mesh, const Vector<Plan
 	mesh_add_surface_from_mesh_data(p_mesh, mdata);
 }
 
-RID RenderingServer::instance_create2(RID p_base, RID p_scenario) {
-	RID instance = instance_create();
-	instance_set_base(instance, p_base);
-	instance_set_scenario(instance, p_scenario);
-	return instance;
-}
-
 bool RenderingServer::is_render_loop_enabled() const {
 	return render_loop_enabled;
 }
@@ -3450,17 +2663,6 @@ void RenderingServer::init() {
 
 	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/limits/time/time_rollover_secs", PROPERTY_HINT_RANGE, "0,10000,1,or_greater"), 3600);
 
-	GLOBAL_DEF_RST("rendering/lights_and_shadows/use_physical_light_units", false);
-
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/lights_and_shadows/directional_shadow/size", PROPERTY_HINT_RANGE, "256,16384"), 4096);
-	GLOBAL_DEF("rendering/lights_and_shadows/directional_shadow/size.mobile", 2048);
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality", PROPERTY_HINT_ENUM, "Hard (Fastest),Soft Very Low (Faster),Soft Low (Fast),Soft Medium (Average),Soft High (Slow),Soft Ultra (Slowest)"), 2);
-	GLOBAL_DEF("rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile", 0);
-	GLOBAL_DEF("rendering/lights_and_shadows/directional_shadow/16_bits", true);
-
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/lights_and_shadows/positional_shadow/soft_shadow_filter_quality", PROPERTY_HINT_ENUM, "Hard (Fastest),Soft Very Low (Faster),Soft Low (Fast),Soft Medium (Average),Soft High (Slow),Soft Ultra (Slowest)"), 2);
-	GLOBAL_DEF("rendering/lights_and_shadows/positional_shadow/soft_shadow_filter_quality.mobile", 0);
-
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/2d/shadow_atlas/size", PROPERTY_HINT_RANGE, "128,16384"), 2048);
 
 	// Number of commands that can be drawn per frame.
@@ -3471,20 +2673,6 @@ void RenderingServer::init() {
 	GLOBAL_DEF("rendering/shader_compiler/shader_cache/use_zstd_compression", true);
 	GLOBAL_DEF("rendering/shader_compiler/shader_cache/strip_debug", false);
 	GLOBAL_DEF("rendering/shader_compiler/shader_cache/strip_debug.release", true);
-
-	GLOBAL_DEF_RST("rendering/reflections/sky_reflections/roughness_layers", 8); // Assumes a 256x256 cubemap
-	GLOBAL_DEF_RST("rendering/reflections/sky_reflections/texture_array_reflections", true);
-	GLOBAL_DEF("rendering/reflections/sky_reflections/texture_array_reflections.mobile", false);
-	GLOBAL_DEF_RST("rendering/reflections/sky_reflections/ggx_samples", 32);
-	GLOBAL_DEF("rendering/reflections/sky_reflections/ggx_samples.mobile", 16);
-	GLOBAL_DEF("rendering/reflections/sky_reflections/fast_filter_high_quality", false);
-	GLOBAL_DEF("rendering/reflections/reflection_atlas/reflection_size", 256);
-	GLOBAL_DEF("rendering/reflections/reflection_atlas/reflection_size.mobile", 128);
-	GLOBAL_DEF("rendering/reflections/reflection_atlas/reflection_count", 64);
-
-	GLOBAL_DEF("rendering/global_illumination/gi/use_half_resolution", false);
-
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/voxel_gi/quality", PROPERTY_HINT_ENUM, "Low (4 Cones - Fast),High (6 Cones - Slow)"), 0);
 
 	GLOBAL_DEF("rendering/shading/overrides/force_vertex_shading", false);
 	GLOBAL_DEF("rendering/shading/overrides/force_vertex_shading.mobile", true);
@@ -3515,20 +2703,6 @@ void RenderingServer::init() {
 	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/environment/ssil/fadeout_from", PROPERTY_HINT_RANGE, "0.0,512,0.1,or_greater"), 50.0);
 	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/environment/ssil/fadeout_to", PROPERTY_HINT_RANGE, "64,65536,0.1,or_greater"), 300.0);
 
-	GLOBAL_DEF("rendering/anti_aliasing/screen_space_roughness_limiter/enabled", true);
-	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/anti_aliasing/screen_space_roughness_limiter/amount", PROPERTY_HINT_RANGE, "0.01,4.0,0.01"), 0.25);
-	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/anti_aliasing/screen_space_roughness_limiter/limit", PROPERTY_HINT_RANGE, "0.01,1.0,0.01"), 0.18);
-
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/scaling_3d/mode", PROPERTY_HINT_ENUM, "Bilinear (Fastest),FSR 1.0 (Fast),FSR 2.2 (Slow)"), 0);
-	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/scaling_3d/scale", PROPERTY_HINT_RANGE, "0.25,2.0,0.01"), 1.0);
-	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/scaling_3d/fsr_sharpness", PROPERTY_HINT_RANGE, "0,2,0.1"), 0.2f);
-	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/textures/default_filters/texture_mipmap_bias", PROPERTY_HINT_RANGE, "-2,2,0.001"), 0.0f);
-
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/textures/decals/filter", PROPERTY_HINT_ENUM, "Nearest (Fast),Linear (Fast),Nearest Mipmap (Fast),Linear Mipmap (Fast),Nearest Mipmap Anisotropic (Average),Linear Mipmap Anisotropic (Average)"), DECAL_FILTER_LINEAR_MIPMAPS);
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/textures/light_projectors/filter", PROPERTY_HINT_ENUM, "Nearest (Fast),Linear (Fast),Nearest Mipmap (Fast),Linear Mipmap (Fast),Nearest Mipmap Anisotropic (Average),Linear Mipmap Anisotropic (Average)"), LIGHT_PROJECTOR_FILTER_LINEAR_MIPMAPS);
-
-	GLOBAL_DEF_RST("rendering/occlusion_culling/occlusion_rays_per_thread", 512);
-
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/environment/glow/upscale_mode", PROPERTY_HINT_ENUM, "Linear (Fast),Bicubic (Slow)"), 1);
 	GLOBAL_DEF("rendering/environment/glow/upscale_mode.mobile", 0);
 
@@ -3540,17 +2714,6 @@ void RenderingServer::init() {
 
 	GLOBAL_DEF("rendering/limits/global_shader_variables/buffer_size", 65536);
 
-	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/lightmapping/probe_capture/update_speed", PROPERTY_HINT_RANGE, "0.001,256,0.001"), 15);
-	GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "rendering/lightmapping/primitive_meshes/texel_size", PROPERTY_HINT_RANGE, "0.001,100,0.001"), 0.2);
-
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/sdfgi/probe_ray_count", PROPERTY_HINT_ENUM, "8 (Fastest),16,32,64,96,128 (Slowest)"), 1);
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/sdfgi/frames_to_converge", PROPERTY_HINT_ENUM, "5 (Less Latency but Lower Quality),10,15,20,25,30 (More Latency but Higher Quality)"), 5);
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/global_illumination/sdfgi/frames_to_update_lights", PROPERTY_HINT_ENUM, "1 (Slower),2,4,8,16 (Faster)"), 2);
-
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/environment/volumetric_fog/volume_size", PROPERTY_HINT_RANGE, "16,512,1"), 64);
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/environment/volumetric_fog/volume_depth", PROPERTY_HINT_RANGE, "16,512,1"), 64);
-	GLOBAL_DEF(PropertyInfo(Variant::INT, "rendering/environment/volumetric_fog/use_filter", PROPERTY_HINT_ENUM, "No (Faster),Yes (Higher Quality)"), 1);
-
 	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "rendering/limits/spatial_indexer/update_iterations_per_frame", PROPERTY_HINT_RANGE, "0,1024,1"), 10);
 	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "rendering/limits/spatial_indexer/threaded_cull_minimum_instances", PROPERTY_HINT_RANGE, "32,65536,1"), 1000);
 	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "rendering/limits/forward_renderer/threaded_render_minimum_instances", PROPERTY_HINT_RANGE, "32,65536,1"), 500);
@@ -3561,8 +2724,6 @@ void RenderingServer::init() {
 	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "rendering/limits/opengl/max_renderable_elements", PROPERTY_HINT_RANGE, "1024,65536,1"), 65536);
 	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "rendering/limits/opengl/max_renderable_lights", PROPERTY_HINT_RANGE, "2,256,1"), 32);
 	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "rendering/limits/opengl/max_lights_per_object", PROPERTY_HINT_RANGE, "2,1024,1"), 8);
-
-	GLOBAL_DEF_RST_BASIC("xr/shaders/enabled", false);
 
 	GLOBAL_DEF("debug/shader_language/warnings/enable", true);
 	GLOBAL_DEF("debug/shader_language/warnings/treat_warnings_as_errors", false);

@@ -31,7 +31,6 @@
 #ifdef GLES3_ENABLED
 
 #include "mesh_storage.h"
-#include "config.h"
 #include "material_storage.h"
 #include "utilities.h"
 
@@ -192,23 +191,7 @@ void MeshStorage::mesh_add_surface(RID p_mesh, const RS::SurfaceData &p_surface)
 
 #endif
 
-	uint64_t surface_version = p_surface.format & (uint64_t(RS::ARRAY_FLAG_FORMAT_VERSION_MASK) << RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT);
 	RS::SurfaceData new_surface = p_surface;
-#ifdef DISABLE_DEPRECATED
-
-	ERR_FAIL_COND_MSG(surface_version != RS::ARRAY_FLAG_FORMAT_CURRENT_VERSION, "Surface version provided (" + itos(int(surface_version >> RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT)) + ") does not match current version (" + itos(RS::ARRAY_FLAG_FORMAT_CURRENT_VERSION >> RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT) + ")");
-
-#else
-
-	if (surface_version != uint64_t(RS::ARRAY_FLAG_FORMAT_CURRENT_VERSION)) {
-		RS::get_singleton()->fix_surface_compatibility(new_surface);
-		surface_version = new_surface.format & (uint64_t(RS::ARRAY_FLAG_FORMAT_VERSION_MASK) << RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT);
-		ERR_FAIL_COND_MSG(surface_version != RS::ARRAY_FLAG_FORMAT_CURRENT_VERSION,
-				vformat("Surface version provided (%d) does not match current version (%d).",
-						(surface_version >> RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT) & RS::ARRAY_FLAG_FORMAT_VERSION_MASK,
-						(RS::ARRAY_FLAG_FORMAT_CURRENT_VERSION >> RS::ARRAY_FLAG_FORMAT_VERSION_SHIFT) & RS::ARRAY_FLAG_FORMAT_VERSION_MASK));
-	}
-#endif
 
 	Mesh::Surface *s = memnew(Mesh::Surface);
 
@@ -286,72 +269,8 @@ void MeshStorage::mesh_add_surface(RID p_mesh, const RS::SurfaceData &p_surface)
 
 	ERR_FAIL_COND_MSG(!new_surface.index_count && !new_surface.vertex_count, "Meshes must contain a vertex array, an index array, or both");
 
-	if (GLES3::Config::get_singleton()->generate_wireframes && s->primitive == RS::PRIMITIVE_TRIANGLES) {
-		// Generate wireframes. This is mostly used by the editor.
-		s->wireframe = memnew(Mesh::Surface::Wireframe);
-		Vector<uint32_t> wf_indices;
-		uint32_t &wf_index_count = s->wireframe->index_count;
-		uint32_t *wr = nullptr;
-
-		if (new_surface.format & RS::ARRAY_FORMAT_INDEX) {
-			wf_index_count = s->index_count * 2;
-			wf_indices.resize(wf_index_count);
-
-			Vector<uint8_t> ir = new_surface.index_data;
-			wr = wf_indices.ptrw();
-
-			if (new_surface.vertex_count < (1 << 16)) {
-				// Read 16 bit indices.
-				const uint16_t *src_idx = (const uint16_t *)ir.ptr();
-				for (uint32_t i = 0; i + 5 < wf_index_count; i += 6) {
-					// We use GL_LINES instead of GL_TRIANGLES for drawing these primitives later,
-					// so we need double the indices for each triangle.
-					wr[i + 0] = src_idx[i / 2];
-					wr[i + 1] = src_idx[i / 2 + 1];
-					wr[i + 2] = src_idx[i / 2 + 1];
-					wr[i + 3] = src_idx[i / 2 + 2];
-					wr[i + 4] = src_idx[i / 2 + 2];
-					wr[i + 5] = src_idx[i / 2];
-				}
-
-			} else {
-				// Read 32 bit indices.
-				const uint32_t *src_idx = (const uint32_t *)ir.ptr();
-				for (uint32_t i = 0; i + 5 < wf_index_count; i += 6) {
-					wr[i + 0] = src_idx[i / 2];
-					wr[i + 1] = src_idx[i / 2 + 1];
-					wr[i + 2] = src_idx[i / 2 + 1];
-					wr[i + 3] = src_idx[i / 2 + 2];
-					wr[i + 4] = src_idx[i / 2 + 2];
-					wr[i + 5] = src_idx[i / 2];
-				}
-			}
-		} else {
-			// Not using indices.
-			wf_index_count = s->vertex_count * 2;
-			wf_indices.resize(wf_index_count);
-			wr = wf_indices.ptrw();
-
-			for (uint32_t i = 0; i + 5 < wf_index_count; i += 6) {
-				wr[i + 0] = i / 2;
-				wr[i + 1] = i / 2 + 1;
-				wr[i + 2] = i / 2 + 1;
-				wr[i + 3] = i / 2 + 2;
-				wr[i + 4] = i / 2 + 2;
-				wr[i + 5] = i / 2;
-			}
-		}
-
-		s->wireframe->index_buffer_size = wf_index_count * sizeof(uint32_t);
-		glGenBuffers(1, &s->wireframe->index_buffer);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s->wireframe->index_buffer);
-		GLES3::Utilities::get_singleton()->buffer_allocate_data(GL_ELEMENT_ARRAY_BUFFER, s->wireframe->index_buffer, s->wireframe->index_buffer_size, wr, GL_STATIC_DRAW, "Mesh wireframe index buffer");
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); // unbind
-	}
-
 	s->aabb = new_surface.aabb;
 	s->bone_aabbs = new_surface.bone_aabbs; //only really useful for returning them.
-	s->mesh_to_skeleton_xform = p_surface.mesh_to_skeleton_xform;
 
 	s->uv_scale = new_surface.uv_scale;
 
@@ -573,7 +492,6 @@ RS::SurfaceData MeshStorage::mesh_get_surface(RID p_mesh, int p_surface) const {
 	}
 
 	sd.bone_aabbs = s.bone_aabbs;
-	sd.mesh_to_skeleton_xform = s.mesh_to_skeleton_xform;
 
 	if (mesh->blend_shape_count) {
 		sd.blend_shape_data = Vector<uint8_t>();
@@ -627,16 +545,15 @@ AABB MeshStorage::mesh_get_aabb(RID p_mesh, RID p_skeleton) {
 
 	for (uint32_t i = 0; i < mesh->surface_count; i++) {
 		AABB laabb;
-		const Mesh::Surface &surface = *mesh->surfaces[i];
-		if ((surface.format & RS::ARRAY_FORMAT_BONES) && surface.bone_aabbs.size()) {
-			int bs = surface.bone_aabbs.size();
-			const AABB *skbones = surface.bone_aabbs.ptr();
+		if ((mesh->surfaces[i]->format & RS::ARRAY_FORMAT_BONES) && mesh->surfaces[i]->bone_aabbs.size()) {
+			int bs = mesh->surfaces[i]->bone_aabbs.size();
+			const AABB *skbones = mesh->surfaces[i]->bone_aabbs.ptr();
 
 			int sbs = skeleton->size;
 			ERR_CONTINUE(bs > sbs);
 			const float *baseptr = skeleton->data.ptr();
 
-			bool found_bone_aabb = false;
+			bool first = true;
 
 			if (skeleton->use_2d) {
 				for (int j = 0; j < bs; j++) {
@@ -656,13 +573,11 @@ AABB MeshStorage::mesh_get_aabb(RID p_mesh, RID p_skeleton) {
 					mtx.basis.rows[1][1] = dataptr[5];
 					mtx.origin.y = dataptr[7];
 
-					// Transform bounds to skeleton's space before applying animation data.
-					AABB baabb = surface.mesh_to_skeleton_xform.xform(skbones[j]);
-					baabb = mtx.xform(baabb);
+					AABB baabb = mtx.xform(skbones[j]);
 
-					if (!found_bone_aabb) {
+					if (first) {
 						laabb = baabb;
-						found_bone_aabb = true;
+						first = false;
 					} else {
 						laabb.merge_with(baabb);
 					}
@@ -690,29 +605,21 @@ AABB MeshStorage::mesh_get_aabb(RID p_mesh, RID p_skeleton) {
 					mtx.basis.rows[2][2] = dataptr[10];
 					mtx.origin.z = dataptr[11];
 
-					// Transform bounds to skeleton's space before applying animation data.
-					AABB baabb = surface.mesh_to_skeleton_xform.xform(skbones[j]);
-					baabb = mtx.xform(baabb);
-
-					if (!found_bone_aabb) {
+					AABB baabb = mtx.xform(skbones[j]);
+					if (first) {
 						laabb = baabb;
-						found_bone_aabb = true;
+						first = false;
 					} else {
 						laabb.merge_with(baabb);
 					}
 				}
 			}
 
-			if (found_bone_aabb) {
-				// Transform skeleton bounds back to mesh's space if any animated AABB applied.
-				laabb = surface.mesh_to_skeleton_xform.affine_inverse().xform(laabb);
-			}
-
 			if (laabb.size == Vector3()) {
-				laabb = surface.aabb;
+				laabb = mesh->surfaces[i]->aabb;
 			}
 		} else {
-			laabb = surface.aabb;
+			laabb = mesh->surfaces[i]->aabb;
 		}
 
 		if (i == 0) {
@@ -801,11 +708,6 @@ void MeshStorage::mesh_clear(RID p_mesh) {
 
 		if (s.versions) {
 			memfree(s.versions); //reallocs, so free with memfree.
-		}
-
-		if (s.wireframe) {
-			GLES3::Utilities::get_singleton()->buffer_free_data(s.wireframe->index_buffer);
-			memdelete(s.wireframe);
 		}
 
 		if (s.lod_count) {
@@ -2188,58 +2090,6 @@ int MeshStorage::skeleton_get_bone_count(RID p_skeleton) const {
 	ERR_FAIL_NULL_V(skeleton, 0);
 
 	return skeleton->size;
-}
-
-void MeshStorage::skeleton_bone_set_transform(RID p_skeleton, int p_bone, const Transform3D &p_transform) {
-	Skeleton *skeleton = skeleton_owner.get_or_null(p_skeleton);
-
-	ERR_FAIL_NULL(skeleton);
-	ERR_FAIL_INDEX(p_bone, skeleton->size);
-	ERR_FAIL_COND(skeleton->use_2d);
-
-	float *dataptr = skeleton->data.ptrw() + p_bone * 12;
-
-	dataptr[0] = p_transform.basis.rows[0][0];
-	dataptr[1] = p_transform.basis.rows[0][1];
-	dataptr[2] = p_transform.basis.rows[0][2];
-	dataptr[3] = p_transform.origin.x;
-	dataptr[4] = p_transform.basis.rows[1][0];
-	dataptr[5] = p_transform.basis.rows[1][1];
-	dataptr[6] = p_transform.basis.rows[1][2];
-	dataptr[7] = p_transform.origin.y;
-	dataptr[8] = p_transform.basis.rows[2][0];
-	dataptr[9] = p_transform.basis.rows[2][1];
-	dataptr[10] = p_transform.basis.rows[2][2];
-	dataptr[11] = p_transform.origin.z;
-
-	_skeleton_make_dirty(skeleton);
-}
-
-Transform3D MeshStorage::skeleton_bone_get_transform(RID p_skeleton, int p_bone) const {
-	Skeleton *skeleton = skeleton_owner.get_or_null(p_skeleton);
-
-	ERR_FAIL_NULL_V(skeleton, Transform3D());
-	ERR_FAIL_INDEX_V(p_bone, skeleton->size, Transform3D());
-	ERR_FAIL_COND_V(skeleton->use_2d, Transform3D());
-
-	const float *dataptr = skeleton->data.ptr() + p_bone * 12;
-
-	Transform3D t;
-
-	t.basis.rows[0][0] = dataptr[0];
-	t.basis.rows[0][1] = dataptr[1];
-	t.basis.rows[0][2] = dataptr[2];
-	t.origin.x = dataptr[3];
-	t.basis.rows[1][0] = dataptr[4];
-	t.basis.rows[1][1] = dataptr[5];
-	t.basis.rows[1][2] = dataptr[6];
-	t.origin.y = dataptr[7];
-	t.basis.rows[2][0] = dataptr[8];
-	t.basis.rows[2][1] = dataptr[9];
-	t.basis.rows[2][2] = dataptr[10];
-	t.origin.z = dataptr[11];
-
-	return t;
 }
 
 void MeshStorage::skeleton_bone_set_transform_2d(RID p_skeleton, int p_bone, const Transform2D &p_transform) {

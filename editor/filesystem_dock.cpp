@@ -47,7 +47,6 @@
 #include "editor/editor_string_names.h"
 #include "editor/gui/editor_dir_dialog.h"
 #include "editor/gui/editor_scene_tabs.h"
-#include "editor/import/resource_importer_scene.h"
 #include "editor/import_dock.h"
 #include "editor/plugins/editor_resource_tooltip_plugins.h"
 #include "editor/scene_create_dialog.h"
@@ -125,11 +124,11 @@ bool FileSystemList::edit_selected() {
 
 	String name = get_item_text(s);
 	line_editor->set_text(name);
+	line_editor->edit();
 	line_editor->select(0, name.rfind("."));
 
 	popup_editor->popup();
 	popup_editor->child_controls_changed();
-	line_editor->grab_focus();
 	return true;
 }
 
@@ -1182,45 +1181,9 @@ void FileSystemDock::_select_file(const String &p_path, bool p_select_in_favorit
 		String resource_type = ResourceLoader::get_resource_type(fpath);
 
 		if (resource_type == "PackedScene") {
-			bool is_imported = false;
-
-			{
-				List<String> importer_exts;
-				ResourceImporterScene::get_scene_singleton()->get_recognized_extensions(&importer_exts);
-				String extension = fpath.get_extension();
-				for (const String &E : importer_exts) {
-					if (extension.nocasecmp_to(E) == 0) {
-						is_imported = true;
-						break;
-					}
-				}
-			}
-
-			if (is_imported) {
-				ResourceImporterScene::get_scene_singleton()->show_advanced_options(fpath);
-			} else {
-				EditorNode::get_singleton()->open_request(fpath);
-			}
+			EditorNode::get_singleton()->open_request(fpath);
 		} else if (resource_type == "AnimationLibrary") {
-			bool is_imported = false;
-
-			{
-				List<String> importer_exts;
-				ResourceImporterScene::get_animation_singleton()->get_recognized_extensions(&importer_exts);
-				String extension = fpath.get_extension();
-				for (const String &E : importer_exts) {
-					if (extension.nocasecmp_to(E) == 0) {
-						is_imported = true;
-						break;
-					}
-				}
-			}
-
-			if (is_imported) {
-				ResourceImporterScene::get_animation_singleton()->show_advanced_options(fpath);
-			} else {
-				EditorNode::get_singleton()->open_request(fpath);
-			}
+			EditorNode::get_singleton()->open_request(fpath);
 		} else if (ResourceLoader::is_imported(fpath)) {
 			// If the importer has advanced settings, show them.
 			int order;
@@ -1295,13 +1258,6 @@ void FileSystemDock::_fs_changed() {
 
 	if (file_list_vb->is_visible()) {
 		_update_file_list(true);
-	}
-
-	if (!select_after_scan.is_empty()) {
-		_navigate_to_path(select_after_scan);
-		select_after_scan.clear();
-		import_dock_needs_update = true;
-		_update_import_dock();
 	}
 
 	set_process(false);
@@ -2300,15 +2256,15 @@ void FileSystemDock::_file_option(int p_option, const Vector<String> &p_selected
 					String name = to_duplicate.path.get_file();
 					duplicate_dialog->set_title(TTR("Duplicating file:") + " " + name);
 					duplicate_dialog_text->set_text(name);
+					duplicate_dialog_text->edit();
 					duplicate_dialog_text->select(0, name.rfind("."));
 				} else {
 					String name = to_duplicate.path.substr(0, to_duplicate.path.length() - 1).get_file();
 					duplicate_dialog->set_title(TTR("Duplicating folder:") + " " + name);
 					duplicate_dialog_text->set_text(name);
-					duplicate_dialog_text->select(0, name.length());
+					duplicate_dialog_text->edit(true);
 				}
 				duplicate_dialog->popup_centered(Size2(250, 80) * EDSCALE);
-				duplicate_dialog_text->grab_focus();
 			}
 		} break;
 
@@ -2473,8 +2429,7 @@ void FileSystemDock::focus_on_filter() {
 	}
 
 	if (current_search_box) {
-		current_search_box->grab_focus();
-		current_search_box->select_all();
+		current_search_box->edit(true);
 	}
 }
 

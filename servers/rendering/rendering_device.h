@@ -56,7 +56,6 @@ public:
 	enum DeviceFamily {
 		DEVICE_UNKNOWN,
 		DEVICE_OPENGL,
-		DEVICE_VULKAN,
 		DEVICE_DIRECTX
 	};
 
@@ -69,23 +68,6 @@ public:
 		DEVICE_TYPE_VIRTUAL_GPU,
 		DEVICE_TYPE_CPU,
 		DEVICE_TYPE_MAX,
-	};
-
-	enum DriverResource {
-		DRIVER_RESOURCE_VULKAN_DEVICE = 0,
-		DRIVER_RESOURCE_VULKAN_PHYSICAL_DEVICE,
-		DRIVER_RESOURCE_VULKAN_INSTANCE,
-		DRIVER_RESOURCE_VULKAN_QUEUE,
-		DRIVER_RESOURCE_VULKAN_QUEUE_FAMILY_INDEX,
-		DRIVER_RESOURCE_VULKAN_IMAGE,
-		DRIVER_RESOURCE_VULKAN_IMAGE_VIEW,
-		DRIVER_RESOURCE_VULKAN_IMAGE_NATIVE_TEXTURE_FORMAT,
-		DRIVER_RESOURCE_VULKAN_SAMPLER,
-		DRIVER_RESOURCE_VULKAN_DESCRIPTOR_SET,
-		DRIVER_RESOURCE_VULKAN_BUFFER,
-		DRIVER_RESOURCE_VULKAN_COMPUTE_PIPELINE,
-		DRIVER_RESOURCE_VULKAN_RENDER_PIPELINE,
-		//next driver continue enum from 1000 to keep order
 	};
 
 	enum ShaderStage {
@@ -1328,8 +1310,6 @@ public:
 	virtual String get_device_api_version() const = 0;
 	virtual String get_device_pipeline_cache_uuid() const = 0;
 
-	virtual uint64_t get_driver_resource(DriverResource p_resource, RID p_rid = RID(), uint64_t p_index = 0) = 0;
-
 	static RenderingDevice *get_singleton();
 	RenderingDevice();
 
@@ -1411,7 +1391,6 @@ protected:
 };
 
 VARIANT_ENUM_CAST(RenderingDevice::DeviceType)
-VARIANT_ENUM_CAST(RenderingDevice::DriverResource)
 VARIANT_ENUM_CAST(RenderingDevice::ShaderStage)
 VARIANT_ENUM_CAST(RenderingDevice::ShaderLanguage)
 VARIANT_ENUM_CAST(RenderingDevice::CompareOperator)

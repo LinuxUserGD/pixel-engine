@@ -34,19 +34,6 @@
 #include "core/input/input.h"
 #include "servers/display_server.h"
 
-#if defined(VULKAN_ENABLED)
-#import "vulkan_context_ios.h"
-
-#include "drivers/vulkan/rendering_device_vulkan.h"
-#include "servers/rendering/renderer_rd/renderer_compositor_rd.h"
-
-#ifdef USE_VOLK
-#include <volk.h>
-#else
-#include <vulkan/vulkan.h>
-#endif
-#endif // VULKAN_ENABLED
-
 #if defined(GLES3_ENABLED)
 #include "drivers/gles3/rasterizer_gles3.h"
 #endif // GLES3_ENABLED
@@ -58,11 +45,6 @@ class DisplayServerIOS : public DisplayServer {
 	// No need to register with GDCLASS, it's platform-specific and nothing is added.
 
 	_THREAD_SAFE_CLASS_
-
-#if defined(VULKAN_ENABLED)
-	VulkanContextIOS *context_vulkan = nullptr;
-	RenderingDeviceVulkan *rendering_device_vulkan = nullptr;
-#endif
 
 	id tts = nullptr;
 

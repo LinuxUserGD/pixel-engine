@@ -87,8 +87,6 @@ void EditorColorMap::create() {
 	add_conversion_color_pair("#c38ef1", "#a85de9"); // Animation
 	add_conversion_color_pair("#8da5f3", "#3d64dd"); // 2D
 	add_conversion_color_pair("#7582a8", "#6d83c8"); // 2D Abstract
-	add_conversion_color_pair("#fc7f7f", "#cd3838"); // 3D
-	add_conversion_color_pair("#b56d6d", "#be6a6a"); // 3D Abstract
 	add_conversion_color_pair("#8eef97", "#2fa139"); // GUI Control
 	add_conversion_color_pair("#76ad7b", "#64a66a"); // GUI Control Abstract
 
@@ -176,7 +174,6 @@ void EditorColorMap::create() {
 	// These icons should not be converted.
 	add_conversion_exception("EditorPivot");
 	add_conversion_exception("EditorHandle");
-	add_conversion_exception("Editor3DHandle");
 	add_conversion_exception("EditorBoneHandle");
 	add_conversion_exception("Godot");
 	add_conversion_exception("Sky");
@@ -191,10 +188,6 @@ void EditorColorMap::create() {
 	add_conversion_exception("StatusSuccess");
 	add_conversion_exception("StatusWarning");
 	add_conversion_exception("OverbrightIndicator");
-	add_conversion_exception("MaterialPreviewCube");
-	add_conversion_exception("MaterialPreviewSphere");
-	add_conversion_exception("MaterialPreviewLight1");
-	add_conversion_exception("MaterialPreviewLight2");
 
 	// GUI
 	add_conversion_exception("GuiChecked");
@@ -368,7 +361,7 @@ static Ref<ImageTexture> editor_generate_icon(int p_index, float p_scale, float 
 	const bool upsample = !Math::is_equal_approx(Math::round(p_scale), p_scale);
 	Error err = ImageLoaderSVG::create_image_from_string(img, editor_icons_sources[p_index], p_scale, upsample, p_convert_colors);
 	ERR_FAIL_COND_V_MSG(err != OK, Ref<ImageTexture>(), "Failed generating icon, unsupported or invalid SVG data in editor theme.");
-	if (p_saturation != 1.0) {
+	if (p_saturation != 0.5) {
 		img->adjust_bcs(1.0, 1.0, p_saturation);
 	}
 #else
@@ -468,7 +461,7 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme, f
 			} else {
 				float saturation = p_icon_saturation;
 				if (saturation_exceptions.has(editor_icon_name)) {
-					saturation = 1.0;
+					saturation = 0.5;
 				}
 
 				if (conversion_exceptions.has(editor_icon_name)) {
@@ -495,7 +488,7 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme, f
 			} else {
 				float saturation = p_icon_saturation;
 				if (saturation_exceptions.has(editor_icons_names[index])) {
-					saturation = 1.0;
+					saturation = 0.5;
 				}
 
 				if (conversion_exceptions.has(editor_icons_names[index])) {
@@ -518,7 +511,7 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme, f
 			} else {
 				float saturation = p_icon_saturation;
 				if (saturation_exceptions.has(editor_icons_names[index])) {
-					saturation = 1.0;
+					saturation = 0.5;
 				}
 
 				if (conversion_exceptions.has(editor_icons_names[index])) {
@@ -561,7 +554,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	float preset_contrast = 0;
 	bool preset_draw_extra_borders = false;
 
-	const float default_contrast = 0.3;
+	const float default_contrast = 0.24;
 
 	// Please use alphabetical order if you're adding a new theme here
 	// (after "Custom")
@@ -603,8 +596,8 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 		preset_contrast = 0.0;
 		preset_draw_extra_borders = true;
 	} else { // Default
-		preset_accent_color = Color(0.44, 0.73, 0.98);
-		preset_base_color = Color(0.21, 0.24, 0.29);
+		preset_accent_color = Color(0.725, 0.467, 0.988);
+		preset_base_color = Color(0.196, 0.18, 0.231);
 		preset_contrast = default_contrast;
 	}
 
@@ -1087,25 +1080,6 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	editor_log_button_pressed->set_border_width(SIDE_BOTTOM, 2 * EDSCALE);
 	editor_log_button_pressed->set_border_color(accent_color);
 	theme->set_stylebox("pressed", "EditorLogFilterButton", editor_log_button_pressed);
-
-	// Buttons in material previews
-	const Color dim_light_color = icon_normal_color.darkened(0.24);
-	const Color dim_light_highlighted_color = icon_normal_color.darkened(0.18);
-	Ref<StyleBox> sb_empty_borderless = make_empty_stylebox();
-
-	theme->set_type_variation("PreviewLightButton", "Button");
-	// When pressed, don't use the accent color tint. When unpressed, dim the icon.
-	theme->set_color("icon_normal_color", "PreviewLightButton", dim_light_color);
-	theme->set_color("icon_focus_color", "PreviewLightButton", dim_light_color);
-	theme->set_color("icon_pressed_color", "PreviewLightButton", icon_normal_color);
-	theme->set_color("icon_hover_pressed_color", "PreviewLightButton", icon_normal_color);
-	// Unpressed icon is dim, so use a dim highlight.
-	theme->set_color("icon_hover_color", "PreviewLightButton", dim_light_highlighted_color);
-
-	theme->set_stylebox("normal", "PreviewLightButton", sb_empty_borderless);
-	theme->set_stylebox("hover", "PreviewLightButton", sb_empty_borderless);
-	theme->set_stylebox("focus", "PreviewLightButton", sb_empty_borderless);
-	theme->set_stylebox("pressed", "PreviewLightButton", sb_empty_borderless);
 
 	// ProjectTag
 	{
@@ -1706,7 +1680,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_color("clear_button_color", "LineEdit", font_color);
 	theme->set_color("clear_button_color_pressed", "LineEdit", accent_color);
 
-	theme->set_constant("minimum_character_width", "LineEdit", 4);
+	theme->set_constant("minimum_character_width", "LineEdit", 3);
 	theme->set_constant("outline_size", "LineEdit", 0);
 	theme->set_constant("caret_width", "LineEdit", 1);
 
@@ -2158,13 +2132,16 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_color("files_disabled", "FileDialog", font_disabled_color);
 
 	// ColorPicker
-	theme->set_constant("margin", "ColorPicker", default_margin_size);
-	theme->set_constant("sv_width", "ColorPicker", 256 * EDSCALE);
-	theme->set_constant("sv_height", "ColorPicker", 256 * EDSCALE);
-	theme->set_constant("h_width", "ColorPicker", 30 * EDSCALE);
-	theme->set_constant("label_width", "ColorPicker", 10 * EDSCALE);
+	theme->set_constant("margin_left", "ColorPicker", 2 * EDSCALE);
+	theme->set_constant("margin_top", "ColorPicker", 2 * EDSCALE);
+	theme->set_constant("margin_right", "ColorPicker", 2 * EDSCALE);
+	theme->set_constant("margin_bottom", "ColorPicker", 2 * EDSCALE);
+	theme->set_constant("sv_width", "ColorPicker", 264 * EDSCALE);
+	theme->set_constant("sv_height", "ColorPicker", 264 * EDSCALE);
+	theme->set_constant("h_width", "ColorPicker", 24 * EDSCALE);
 	theme->set_constant("center_slider_grabbers", "ColorPicker", 1);
 	theme->set_icon("screen_picker", "ColorPicker", theme->get_icon(SNAME("ColorPick"), EditorStringName(EditorIcons)));
+	theme->set_icon("modes_icon", "ColorPicker", theme->get_icon(SNAME("GuiTabMenuHl"), EditorStringName(EditorIcons)));
 	theme->set_icon("shape_circle", "ColorPicker", theme->get_icon(SNAME("PickerShapeCircle"), EditorStringName(EditorIcons)));
 	theme->set_icon("shape_rect", "ColorPicker", theme->get_icon(SNAME("PickerShapeRectangle"), EditorStringName(EditorIcons)));
 	theme->set_icon("shape_rect_wheel", "ColorPicker", theme->get_icon(SNAME("PickerShapeRectangleWheel"), EditorStringName(EditorIcons)));
@@ -2182,12 +2159,6 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_stylebox("preset_fg", "ColorPresetButton", preset_sb);
 	theme->set_icon("preset_bg", "ColorPresetButton", theme->get_icon(SNAME("GuiMiniCheckerboard"), EditorStringName(EditorIcons)));
 	theme->set_icon("overbright_indicator", "ColorPresetButton", theme->get_icon(SNAME("OverbrightIndicator"), EditorStringName(EditorIcons)));
-
-	// Information on 3D viewport
-	Ref<StyleBoxFlat> style_info_3d_viewport = style_default->duplicate();
-	style_info_3d_viewport->set_bg_color(style_info_3d_viewport->get_bg_color() * Color(1, 1, 1, 0.5));
-	style_info_3d_viewport->set_border_width_all(0);
-	theme->set_stylebox("Information3dViewport", EditorStringName(EditorStyles), style_info_3d_viewport);
 
 	// Asset Library.
 	theme->set_stylebox("bg", "AssetLib", style_empty);

@@ -100,7 +100,6 @@ class EditorTitleBar;
 class EditorToaster;
 class EditorUndoRedoManager;
 class ExportTemplateManager;
-class FBXImporterManager;
 class FileSystemDock;
 class HistoryDock;
 class ImportDock;
@@ -113,8 +112,6 @@ class ProjectSettingsEditor;
 class RunSettingsDialog;
 class SceneImportSettings;
 class ScriptCreateDialog;
-class SurfaceUpgradeTool;
-class SurfaceUpgradeDialog;
 class WindowWrapper;
 
 class EditorNode : public Node {
@@ -135,7 +132,6 @@ public:
 
 	enum EditorTable {
 		EDITOR_2D = 0,
-		EDITOR_3D,
 		EDITOR_SCRIPT,
 		EDITOR_ASSETLIB
 	};
@@ -158,7 +154,6 @@ public:
 
 private:
 	friend class EditorSceneTabs;
-	friend class SurfaceUpgradeTool;
 
 	enum MenuOptions {
 		FILE_NEW_SCENE,
@@ -172,7 +167,6 @@ private:
 		FILE_RUN_SCENE,
 		FILE_SHOW_IN_FILESYSTEM,
 		FILE_EXPORT_PROJECT,
-		FILE_EXPORT_MESH_LIBRARY,
 		FILE_INSTALL_ANDROID_SOURCE,
 		FILE_EXPLORE_ANDROID_BUILD_TEMPLATES,
 		FILE_SAVE_OPTIMIZED,
@@ -193,7 +187,6 @@ private:
 		EDIT_RELOAD_SAVED_SCENE,
 		TOOLS_ORPHAN_RESOURCES,
 		TOOLS_BUILD_PROFILE_MANAGER,
-		TOOLS_SURFACE_UPGRADE,
 		TOOLS_CUSTOM,
 		RESOURCE_SAVE,
 		RESOURCE_SAVE_AS,
@@ -217,7 +210,6 @@ private:
 		SETTINGS_EDITOR_DATA_FOLDER,
 		SETTINGS_EDITOR_CONFIG_FOLDER,
 		SETTINGS_MANAGE_EXPORT_TEMPLATES,
-		SETTINGS_MANAGE_FBX_IMPORTER,
 		SETTINGS_MANAGE_FEATURE_PROFILES,
 		SETTINGS_INSTALL_ANDROID_BUILD_TEMPLATE,
 		SETTINGS_PICK_MAIN_SCENE,
@@ -231,15 +223,10 @@ private:
 
 		HELP_SEARCH,
 		HELP_COMMAND_PALETTE,
-		HELP_DOCS,
-		HELP_QA,
 		HELP_REPORT_A_BUG,
 		HELP_COPY_SYSTEM_INFO,
 		HELP_SUGGEST_A_FEATURE,
-		HELP_SEND_DOCS_FEEDBACK,
-		HELP_COMMUNITY,
 		HELP_ABOUT,
-		HELP_SUPPORT_GODOT_DEVELOPMENT,
 
 		SET_RENDERER_NAME_SAVE_AND_RESTART,
 
@@ -288,8 +275,6 @@ private:
 
 	ProjectExportDialog *project_export = nullptr;
 	ProjectSettingsEditor *project_settings_editor = nullptr;
-
-	FBXImporterManager *fbx_importer_manager = nullptr;
 
 	Vector<EditorPlugin *> editor_plugins;
 	bool _initializing_plugins = false;
@@ -351,7 +336,6 @@ private:
 	PopupMenu *settings_menu = nullptr;
 	PopupMenu *help_menu = nullptr;
 	PopupMenu *tool_menu = nullptr;
-	PopupMenu *export_as_menu = nullptr;
 	Button *export_button = nullptr;
 	Button *search_button = nullptr;
 	TextureProgressBar *audio_vu = nullptr;
@@ -499,10 +483,6 @@ private:
 
 	HashMap<String, Ref<Texture2D>> icon_type_cache;
 
-	SurfaceUpgradeTool *surface_upgrade_tool = nullptr;
-	SurfaceUpgradeDialog *surface_upgrade_dialog = nullptr;
-	bool run_surface_upgrade_tool = false;
-
 	static EditorBuildCallback build_callbacks[MAX_BUILD_CALLBACKS];
 	static EditorPluginInitializeCallback plugin_init_callbacks[MAX_INIT_CALLBACKS];
 	static int build_callback_count;
@@ -554,7 +534,6 @@ private:
 	void _save_screenshot(NodePath p_path);
 
 	void _tool_menu_option(int p_idx);
-	void _export_as_menu_option(int p_idx);
 	void _update_file_menu_opened();
 	void _update_file_menu_closed();
 
@@ -610,10 +589,6 @@ private:
 	void _update_from_settings();
 	void _gdextensions_reloaded();
 
-	void _renderer_selected(int);
-	void _update_renderer_color();
-	void _add_renderer_entry(const String &p_renderer_name, bool p_mark_overridden);
-
 	void _exit_editor(int p_exit_code);
 
 	virtual void shortcut_input(const Ref<InputEvent> &p_event) override;
@@ -627,7 +602,7 @@ private:
 	void _save_edited_subresources(Node *scene, HashMap<Ref<Resource>, bool> &processed, int32_t flags);
 	void _mark_unsaved_scenes();
 
-	void _find_node_types(Node *p_node, int &count_2d, int &count_3d);
+	void _find_node_types(Node *p_node, int &count_2d);
 	void _save_scene_with_preview(String p_file, int p_idx = -1);
 
 	bool _find_scene_in_use(Node *p_node, const String &p_path) const;
@@ -825,7 +800,6 @@ public:
 		int index = 0;
 		// Used if the original parent node is lost
 		Transform2D transform_2d;
-		Transform3D transform_3d;
 		// Used to keep track of the ownership of all ancestor nodes so they can be restored later.
 		HashMap<Node *, Node *> ownership_table;
 	};
@@ -897,7 +871,6 @@ public:
 	bool is_scene_in_use(const String &p_path);
 
 	void save_editor_layout_delayed();
-	void save_default_environment();
 
 	void open_export_template_manager();
 
@@ -920,8 +893,6 @@ public:
 	void add_tool_menu_item(const String &p_name, const Callable &p_callback);
 	void add_tool_submenu_item(const String &p_name, PopupMenu *p_submenu);
 	void remove_tool_menu_item(const String &p_name);
-
-	PopupMenu *get_export_as_menu();
 
 	void save_all_scenes();
 	void save_scene_if_open(const String &p_scene_path);
@@ -977,9 +948,6 @@ public:
 	bool forward_gui_input(const Ref<InputEvent> &p_event);
 	void forward_canvas_draw_over_viewport(Control *p_overlay);
 	void forward_canvas_force_draw_over_viewport(Control *p_overlay);
-	EditorPlugin::AfterGUIInput forward_3d_gui_input(Camera3D *p_camera, const Ref<InputEvent> &p_event, bool serve_when_force_input_enabled);
-	void forward_3d_draw_over_viewport(Control *p_overlay);
-	void forward_3d_force_draw_over_viewport(Control *p_overlay);
 	void add_plugin(EditorPlugin *p_plugin);
 	void remove_plugin(EditorPlugin *p_plugin);
 	void clear();

@@ -45,7 +45,6 @@
 class RenderingServerDefault : public RenderingServer {
 	enum {
 		MAX_INSTANCE_CULL = 8192,
-		MAX_INSTANCE_LIGHTS = 4,
 		LIGHT_CACHE_DIRTY = -1,
 		MAX_LIGHTS_CULLED = 256,
 		MAX_ROOM_CULL = 32,
@@ -56,7 +55,6 @@ class RenderingServerDefault : public RenderingServer {
 	};
 
 	static int changes;
-	RID test_cube;
 
 	List<Callable> frame_drawn_callbacks;
 
@@ -354,132 +352,9 @@ public:
 	FUNCRIDSPLIT(skeleton)
 	FUNC3(skeleton_allocate_data, RID, int, bool)
 	FUNC1RC(int, skeleton_get_bone_count, RID)
-	FUNC3(skeleton_bone_set_transform, RID, int, const Transform3D &)
-	FUNC2RC(Transform3D, skeleton_bone_get_transform, RID, int)
 	FUNC3(skeleton_bone_set_transform_2d, RID, int, const Transform2D &)
 	FUNC2RC(Transform2D, skeleton_bone_get_transform_2d, RID, int)
 	FUNC2(skeleton_set_base_transform_2d, RID, const Transform2D &)
-
-	/* Light API */
-#undef ServerName
-#undef server_name
-
-#define ServerName RendererLightStorage
-#define server_name RSG::light_storage
-
-	FUNCRIDSPLIT(directional_light)
-	FUNCRIDSPLIT(omni_light)
-	FUNCRIDSPLIT(spot_light)
-
-	FUNC2(light_set_color, RID, const Color &)
-	FUNC3(light_set_param, RID, LightParam, float)
-	FUNC2(light_set_shadow, RID, bool)
-	FUNC2(light_set_projector, RID, RID)
-	FUNC2(light_set_negative, RID, bool)
-	FUNC2(light_set_cull_mask, RID, uint32_t)
-	FUNC5(light_set_distance_fade, RID, bool, float, float, float)
-	FUNC2(light_set_reverse_cull_face_mode, RID, bool)
-	FUNC2(light_set_bake_mode, RID, LightBakeMode)
-	FUNC2(light_set_max_sdfgi_cascade, RID, uint32_t)
-
-	FUNC2(light_omni_set_shadow_mode, RID, LightOmniShadowMode)
-
-	FUNC2(light_directional_set_shadow_mode, RID, LightDirectionalShadowMode)
-	FUNC2(light_directional_set_blend_splits, RID, bool)
-	FUNC2(light_directional_set_sky_mode, RID, LightDirectionalSkyMode)
-
-	/* PROBE API */
-
-	FUNCRIDSPLIT(reflection_probe)
-
-	FUNC2(reflection_probe_set_update_mode, RID, ReflectionProbeUpdateMode)
-	FUNC2(reflection_probe_set_intensity, RID, float)
-	FUNC2(reflection_probe_set_ambient_color, RID, const Color &)
-	FUNC2(reflection_probe_set_ambient_energy, RID, float)
-	FUNC2(reflection_probe_set_ambient_mode, RID, ReflectionProbeAmbientMode)
-	FUNC2(reflection_probe_set_max_distance, RID, float)
-	FUNC2(reflection_probe_set_size, RID, const Vector3 &)
-	FUNC2(reflection_probe_set_origin_offset, RID, const Vector3 &)
-	FUNC2(reflection_probe_set_as_interior, RID, bool)
-	FUNC2(reflection_probe_set_enable_box_projection, RID, bool)
-	FUNC2(reflection_probe_set_enable_shadows, RID, bool)
-	FUNC2(reflection_probe_set_cull_mask, RID, uint32_t)
-	FUNC2(reflection_probe_set_resolution, RID, int)
-	FUNC2(reflection_probe_set_mesh_lod_threshold, RID, float)
-
-	/* LIGHTMAP */
-
-	FUNCRIDSPLIT(lightmap)
-
-	FUNC3(lightmap_set_textures, RID, RID, bool)
-	FUNC2(lightmap_set_probe_bounds, RID, const AABB &)
-	FUNC2(lightmap_set_probe_interior, RID, bool)
-	FUNC5(lightmap_set_probe_capture_data, RID, const PackedVector3Array &, const PackedColorArray &, const PackedInt32Array &, const PackedInt32Array &)
-	FUNC2(lightmap_set_baked_exposure_normalization, RID, float)
-	FUNC1RC(PackedVector3Array, lightmap_get_probe_capture_points, RID)
-	FUNC1RC(PackedColorArray, lightmap_get_probe_capture_sh, RID)
-	FUNC1RC(PackedInt32Array, lightmap_get_probe_capture_tetrahedra, RID)
-	FUNC1RC(PackedInt32Array, lightmap_get_probe_capture_bsp_tree, RID)
-	FUNC1(lightmap_set_probe_capture_update_speed, float)
-
-	/* Shadow Atlas */
-	FUNC0R(RID, shadow_atlas_create)
-	FUNC3(shadow_atlas_set_size, RID, int, bool)
-	FUNC3(shadow_atlas_set_quadrant_subdivision, RID, int, int)
-
-	FUNC2(directional_shadow_atlas_set_size, int, bool)
-
-	/* DECAL API */
-
-#undef ServerName
-#undef server_name
-
-#define ServerName RendererTextureStorage
-#define server_name RSG::texture_storage
-
-	FUNCRIDSPLIT(decal)
-
-	FUNC2(decal_set_size, RID, const Vector3 &)
-	FUNC3(decal_set_texture, RID, DecalTexture, RID)
-	FUNC2(decal_set_emission_energy, RID, float)
-	FUNC2(decal_set_albedo_mix, RID, float)
-	FUNC2(decal_set_modulate, RID, const Color &)
-	FUNC2(decal_set_cull_mask, RID, uint32_t)
-	FUNC4(decal_set_distance_fade, RID, bool, float, float)
-	FUNC3(decal_set_fade, RID, float, float)
-	FUNC2(decal_set_normal_fade, RID, float)
-
-	/* BAKED LIGHT API */
-
-//from now on, calls forwarded to this singleton
-#undef ServerName
-#undef server_name
-
-#define ServerName RendererGI
-#define server_name RSG::gi
-
-	FUNCRIDSPLIT(voxel_gi)
-
-	FUNC8(voxel_gi_allocate_data, RID, const Transform3D &, const AABB &, const Vector3i &, const Vector<uint8_t> &, const Vector<uint8_t> &, const Vector<uint8_t> &, const Vector<int> &)
-
-	FUNC1RC(AABB, voxel_gi_get_bounds, RID)
-	FUNC1RC(Vector3i, voxel_gi_get_octree_size, RID)
-	FUNC1RC(Vector<uint8_t>, voxel_gi_get_octree_cells, RID)
-	FUNC1RC(Vector<uint8_t>, voxel_gi_get_data_cells, RID)
-	FUNC1RC(Vector<uint8_t>, voxel_gi_get_distance_field, RID)
-	FUNC1RC(Vector<int>, voxel_gi_get_level_counts, RID)
-	FUNC1RC(Transform3D, voxel_gi_get_to_cell_xform, RID)
-
-	FUNC2(voxel_gi_set_dynamic_range, RID, float)
-	FUNC2(voxel_gi_set_propagation, RID, float)
-	FUNC2(voxel_gi_set_energy, RID, float)
-	FUNC2(voxel_gi_set_baked_exposure_normalization, RID, float)
-	FUNC2(voxel_gi_set_bias, RID, float)
-	FUNC2(voxel_gi_set_normal_bias, RID, float)
-	FUNC2(voxel_gi_set_interior, RID, bool)
-	FUNC2(voxel_gi_set_use_two_bounces, RID, bool)
-
-	FUNC0(sdfgi_reset)
 
 	/* PARTICLES */
 
@@ -545,54 +420,6 @@ public:
 	FUNC1(particles_collision_height_field_update, RID)
 	FUNC2(particles_collision_set_height_field_resolution, RID, ParticlesCollisionHeightfieldResolution)
 
-	/* FOG VOLUME */
-
-#undef ServerName
-#undef server_name
-
-#define ServerName RendererFog
-#define server_name RSG::fog
-
-	FUNCRIDSPLIT(fog_volume)
-
-	FUNC2(fog_volume_set_shape, RID, FogVolumeShape)
-	FUNC2(fog_volume_set_size, RID, const Vector3 &)
-	FUNC2(fog_volume_set_material, RID, RID)
-
-	/* VISIBILITY_NOTIFIER */
-
-#undef ServerName
-#undef server_name
-
-#define ServerName RendererUtilities
-#define server_name RSG::utilities
-
-	FUNCRIDSPLIT(visibility_notifier)
-	FUNC2(visibility_notifier_set_aabb, RID, const AABB &)
-	FUNC3(visibility_notifier_set_callbacks, RID, const Callable &, const Callable &)
-
-#undef server_name
-#undef ServerName
-//from now on, calls forwarded to this singleton
-#define ServerName RenderingMethod
-#define server_name RSG::scene
-
-	/* CAMERA API */
-
-	FUNCRIDSPLIT(camera)
-	FUNC4(camera_set_perspective, RID, float, float, float)
-	FUNC4(camera_set_orthogonal, RID, float, float, float)
-	FUNC5(camera_set_frustum, RID, float, Vector2, float, float)
-	FUNC2(camera_set_transform, RID, const Transform3D &)
-	FUNC2(camera_set_cull_mask, RID, uint32_t)
-	FUNC2(camera_set_environment, RID, RID)
-	FUNC2(camera_set_camera_attributes, RID, RID)
-	FUNC2(camera_set_use_vertical_aspect, RID, bool)
-
-	/* OCCLUDER */
-	FUNCRIDSPLIT(occluder)
-	FUNC3(occluder_set_mesh, RID, const PackedVector3Array &, const PackedInt32Array &)
-
 #undef server_name
 #undef ServerName
 //from now on, calls forwarded to this singleton
@@ -603,7 +430,6 @@ public:
 
 	FUNCRIDSPLIT(viewport)
 
-	FUNC2(viewport_set_use_xr, RID, bool)
 	FUNC3(viewport_set_size, RID, int, int)
 
 	FUNC2(viewport_set_active, RID, bool)
@@ -614,30 +440,21 @@ public:
 	FUNC3(viewport_attach_to_screen, RID, const Rect2 &, int)
 	FUNC2(viewport_set_render_direct_to_screen, RID, bool)
 
-	FUNC2(viewport_set_scaling_3d_mode, RID, ViewportScaling3DMode)
-	FUNC2(viewport_set_scaling_3d_scale, RID, float)
-	FUNC2(viewport_set_fsr_sharpness, RID, float)
-	FUNC2(viewport_set_texture_mipmap_bias, RID, float)
-
 	FUNC2(viewport_set_update_mode, RID, ViewportUpdateMode)
 
 	FUNC1RC(RID, viewport_get_render_target, RID)
 	FUNC1RC(RID, viewport_get_texture, RID)
 
 	FUNC2(viewport_set_disable_2d, RID, bool)
-	FUNC2(viewport_set_environment_mode, RID, ViewportEnvironmentMode)
-	FUNC2(viewport_set_disable_3d, RID, bool)
 
 	FUNC2(viewport_set_canvas_cull_mask, RID, uint32_t)
 
 	FUNC2(viewport_attach_camera, RID, RID)
-	FUNC2(viewport_set_scenario, RID, RID)
 	FUNC2(viewport_attach_canvas, RID, RID)
 
 	FUNC2(viewport_remove_canvas, RID, RID)
 	FUNC3(viewport_set_canvas_transform, RID, RID, const Transform2D &)
 	FUNC2(viewport_set_transparent_background, RID, bool)
-	FUNC2(viewport_set_use_hdr_2d, RID, bool)
 	FUNC2(viewport_set_snap_2d_transforms_to_pixel, RID, bool)
 	FUNC2(viewport_set_snap_2d_vertices_to_pixel, RID, bool)
 
@@ -646,18 +463,8 @@ public:
 
 	FUNC2(viewport_set_global_canvas_transform, RID, const Transform2D &)
 	FUNC4(viewport_set_canvas_stacking, RID, RID, int, int)
-	FUNC3(viewport_set_positional_shadow_atlas_size, RID, int, bool)
 	FUNC3(viewport_set_sdf_oversize_and_scale, RID, ViewportSDFOversize, ViewportSDFScale)
-	FUNC3(viewport_set_positional_shadow_atlas_quadrant_subdivision, RID, int, int)
 	FUNC2(viewport_set_msaa_2d, RID, ViewportMSAA)
-	FUNC2(viewport_set_msaa_3d, RID, ViewportMSAA)
-	FUNC2(viewport_set_screen_space_aa, RID, ViewportScreenSpaceAA)
-	FUNC2(viewport_set_use_taa, RID, bool)
-	FUNC2(viewport_set_use_debanding, RID, bool)
-	FUNC2(viewport_set_use_occlusion_culling, RID, bool)
-	FUNC1(viewport_set_occlusion_rays_per_thread, int)
-	FUNC1(viewport_set_occlusion_culling_build_quality, ViewportOcclusionCullingBuildQuality)
-	FUNC2(viewport_set_mesh_lod_threshold, RID, float)
 
 	FUNC3R(int, viewport_get_render_info, RID, ViewportRenderInfoType, ViewportRenderInfo)
 	FUNC2(viewport_set_debug_draw, RID, ViewportDebugDraw)
@@ -669,97 +476,6 @@ public:
 
 	FUNC2(call_set_vsync_mode, DisplayServer::VSyncMode, DisplayServer::WindowID)
 
-	FUNC2(viewport_set_vrs_mode, RID, ViewportVRSMode)
-	FUNC2(viewport_set_vrs_texture, RID, RID)
-
-	/* ENVIRONMENT API */
-
-#undef server_name
-#undef ServerName
-//from now on, calls forwarded to this singleton
-#define ServerName RenderingMethod
-#define server_name RSG::scene
-
-	FUNC1(voxel_gi_set_quality, VoxelGIQuality)
-
-	/* SKY API */
-
-	FUNCRIDSPLIT(sky)
-	FUNC2(sky_set_radiance_size, RID, int)
-	FUNC2(sky_set_mode, RID, SkyMode)
-	FUNC2(sky_set_material, RID, RID)
-	FUNC4R(Ref<Image>, sky_bake_panorama, RID, float, bool, const Size2i &)
-
-	FUNCRIDSPLIT(environment)
-
-	FUNC2(environment_set_background, RID, EnvironmentBG)
-	FUNC2(environment_set_sky, RID, RID)
-	FUNC2(environment_set_sky_custom_fov, RID, float)
-	FUNC2(environment_set_sky_orientation, RID, const Basis &)
-	FUNC2(environment_set_bg_color, RID, const Color &)
-	FUNC3(environment_set_bg_energy, RID, float, float)
-	FUNC2(environment_set_canvas_max_layer, RID, int)
-	FUNC6(environment_set_ambient_light, RID, const Color &, EnvironmentAmbientSource, float, float, EnvironmentReflectionSource)
-
-// FIXME: Disabled during Vulkan refactoring, should be ported.
-#if 0
-	FUNC2(environment_set_camera_feed_id, RID, int)
-#endif
-	FUNC6(environment_set_ssr, RID, bool, int, float, float, float)
-	FUNC1(environment_set_ssr_roughness_quality, EnvironmentSSRRoughnessQuality)
-
-	FUNC10(environment_set_ssao, RID, bool, float, float, float, float, float, float, float, float)
-	FUNC6(environment_set_ssao_quality, EnvironmentSSAOQuality, bool, float, int, float, float)
-
-	FUNC6(environment_set_ssil, RID, bool, float, float, float, float)
-	FUNC6(environment_set_ssil_quality, EnvironmentSSILQuality, bool, float, int, float, float)
-
-	FUNC13(environment_set_glow, RID, bool, Vector<float>, float, float, float, float, EnvironmentGlowBlendMode, float, float, float, float, RID)
-	FUNC1(environment_glow_set_use_bicubic_upscale, bool)
-
-	FUNC4(environment_set_tonemap, RID, EnvironmentToneMapper, float, float)
-
-	FUNC7(environment_set_adjustment, RID, bool, float, float, float, bool, RID)
-
-	FUNC10(environment_set_fog, RID, bool, const Color &, float, float, float, float, float, float, float)
-	FUNC14(environment_set_volumetric_fog, RID, bool, float, const Color &, const Color &, float, float, float, float, float, bool, float, float, float)
-
-	FUNC2(environment_set_volumetric_fog_volume_size, int, int)
-	FUNC1(environment_set_volumetric_fog_filter_active, bool)
-
-	FUNC11(environment_set_sdfgi, RID, bool, int, float, EnvironmentSDFGIYScale, bool, float, bool, float, float, float)
-	FUNC1(environment_set_sdfgi_ray_count, EnvironmentSDFGIRayCount)
-	FUNC1(environment_set_sdfgi_frames_to_converge, EnvironmentSDFGIFramesToConverge)
-	FUNC1(environment_set_sdfgi_frames_to_update_light, EnvironmentSDFGIFramesToUpdateLight)
-
-	FUNC3R(Ref<Image>, environment_bake_panorama, RID, bool, const Size2i &)
-
-	FUNC3(screen_space_roughness_limiter_set_active, bool, float, float)
-	FUNC1(sub_surface_scattering_set_quality, SubSurfaceScatteringQuality)
-	FUNC2(sub_surface_scattering_set_scale, float, float)
-
-	FUNC1(positional_soft_shadow_filter_set_quality, ShadowQuality);
-	FUNC1(directional_soft_shadow_filter_set_quality, ShadowQuality);
-	FUNC1(decals_set_filter, RS::DecalFilter);
-	FUNC1(light_projectors_set_filter, RS::LightProjectorFilter);
-
-	/* CAMERA ATTRIBUTES */
-
-#undef server_name
-#undef ServerName
-//from now on, calls forwarded to this singleton
-#define ServerName RendererCameraAttributes
-#define server_name RSG::camera_attributes
-
-	FUNCRIDSPLIT(camera_attributes)
-
-	FUNC2(camera_attributes_set_dof_blur_quality, DOFBlurQuality, bool)
-	FUNC1(camera_attributes_set_dof_blur_bokeh_shape, DOFBokehShape)
-
-	FUNC8(camera_attributes_set_dof_blur, RID, bool, float, float, bool, float, float, float)
-	FUNC3(camera_attributes_set_exposure, RID, float, float)
-	FUNC6(camera_attributes_set_auto_exposure, RID, bool, float, float, float, float)
-
 	/* SCENARIO API */
 
 #undef server_name
@@ -768,17 +484,9 @@ public:
 #define ServerName RenderingMethod
 #define server_name RSG::scene
 
-	FUNCRIDSPLIT(scenario)
-
-	FUNC2(scenario_set_environment, RID, RID)
-	FUNC2(scenario_set_camera_attributes, RID, RID)
-	FUNC2(scenario_set_fallback_environment, RID, RID)
-
 	/* INSTANCING API */
 	FUNCRIDSPLIT(instance)
 
-	FUNC2(instance_set_base, RID, RID)
-	FUNC2(instance_set_scenario, RID, RID)
 	FUNC2(instance_set_layer_mask, RID, uint32_t)
 	FUNC3(instance_set_pivot_data, RID, float, bool)
 	FUNC2(instance_set_transform, RID, const Transform3D &)
@@ -786,8 +494,6 @@ public:
 	FUNC3(instance_set_blend_shape_weight, RID, int, float)
 	FUNC3(instance_set_surface_override_material, RID, int, RID)
 	FUNC2(instance_set_visible, RID, bool)
-
-	FUNC2(instance_set_custom_aabb, RID, AABB)
 
 	FUNC2(instance_attach_skeleton, RID, RID)
 
@@ -797,9 +503,6 @@ public:
 	FUNC2(instance_set_ignore_culling, RID, bool)
 
 	// don't use these in a game!
-	FUNC2RC(Vector<ObjectID>, instances_cull_aabb, const AABB &, RID)
-	FUNC3RC(Vector<ObjectID>, instances_cull_ray, const Vector3 &, const Vector3 &, RID)
-	FUNC2RC(Vector<ObjectID>, instances_cull_convex, const Vector<Plane> &, RID)
 
 	FUNC3(instance_geometry_set_flag, RID, InstanceFlags, bool)
 	FUNC2(instance_geometry_set_cast_shadows_setting, RID, ShadowCastingSetting)
@@ -807,17 +510,11 @@ public:
 	FUNC2(instance_geometry_set_material_overlay, RID, RID)
 
 	FUNC6(instance_geometry_set_visibility_range, RID, float, float, float, float, VisibilityRangeFadeMode)
-	FUNC4(instance_geometry_set_lightmap, RID, RID, const Rect2 &, int)
 	FUNC2(instance_geometry_set_lod_bias, RID, float)
 	FUNC2(instance_geometry_set_transparency, RID, float)
 	FUNC3(instance_geometry_set_shader_parameter, RID, const StringName &, const Variant &)
 	FUNC2RC(Variant, instance_geometry_get_shader_parameter, RID, const StringName &)
 	FUNC2RC(Variant, instance_geometry_get_shader_parameter_default_value, RID, const StringName &)
-	FUNC2C(instance_geometry_get_shader_parameter_list, RID, List<PropertyInfo> *)
-
-	FUNC3R(TypedArray<Image>, bake_render_uv2, RID, const TypedArray<RID> &, const Size2i &)
-
-	FUNC1(gi_set_use_half_resolution, bool)
 
 #undef server_name
 #undef ServerName
@@ -984,8 +681,6 @@ public:
 	virtual Vector<FrameProfileArea> get_frame_profile() override;
 	virtual uint64_t get_frame_profile_frame() override;
 
-	virtual RID get_test_cube() override;
-
 	/* FREE */
 
 	virtual void free(RID p_rid) override {
@@ -1030,8 +725,6 @@ public:
 	virtual void set_debug_generate_wireframes(bool p_generate) override;
 
 	virtual bool is_low_end() const override;
-
-	virtual void sdfgi_set_debug_probe_select(const Vector3 &p_position, const Vector3 &p_dir) override;
 
 	virtual void set_print_gpu_profile(bool p_enable) override;
 

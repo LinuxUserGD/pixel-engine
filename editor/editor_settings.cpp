@@ -461,9 +461,9 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "interface/theme/icon_and_font_color", 0, "Auto,Dark,Light")
 	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "interface/theme/base_color", Color(0.2, 0.23, 0.31), "")
 	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "interface/theme/accent_color", Color(0.41, 0.61, 0.91), "")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "interface/theme/contrast", 0.3, "-1,1,0.01")
+	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "interface/theme/contrast", 0.24, "-1,1,0.01")
 	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/theme/draw_extra_borders", false, "")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "interface/theme/icon_saturation", 1.0, "0,2,0.01")
+	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "interface/theme/icon_saturation", 0.5, "0,2,0.01")
 	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "interface/theme/relationship_line_opacity", 0.1, "0.00,1,0.01")
 	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "interface/theme/border_size", 0, "0,2,1")
 	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "interface/theme/corner_radius", 3, "0,6,1")
@@ -497,7 +497,6 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_GLOBAL_FILE, "filesystem/external_programs/raster_image_editor", "", "")
 	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_GLOBAL_FILE, "filesystem/external_programs/vector_image_editor", "", "")
 	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_GLOBAL_FILE, "filesystem/external_programs/audio_editor", "", "")
-	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_GLOBAL_FILE, "filesystem/external_programs/3d_model_editor", "", "")
 
 	// Directories
 	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_GLOBAL_DIR, "filesystem/directories/autoscan_project_path", "", "")
@@ -512,15 +511,6 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("filesystem/file_dialog/show_hidden_files", false);
 	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "filesystem/file_dialog/display_mode", 0, "Thumbnails,List")
 	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "filesystem/file_dialog/thumbnail_size", 64, "32,128,16")
-
-	// Import (for glft module)
-	EDITOR_SETTING_USAGE(Variant::STRING, PROPERTY_HINT_GLOBAL_DIR, "filesystem/import/blender/blender3_path", "", "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-	EDITOR_SETTING_USAGE(Variant::INT, PROPERTY_HINT_RANGE, "filesystem/import/blender/rpc_port", 6011, "0,65535,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-	EDITOR_SETTING_USAGE(Variant::FLOAT, PROPERTY_HINT_RANGE, "filesystem/import/blender/rpc_server_uptime", 5, "0,300,1,or_greater,suffix:s", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-	EDITOR_SETTING_USAGE(Variant::STRING, PROPERTY_HINT_GLOBAL_FILE, "filesystem/import/fbx/fbx2gltf_path", "", "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-
-	// Tools (denoise)
-	EDITOR_SETTING_USAGE(Variant::STRING, PROPERTY_HINT_GLOBAL_DIR, "filesystem/tools/oidn/oidn_denoise_path", "", "", PROPERTY_USAGE_DEFAULT)
 
 	/* Docks */
 
@@ -623,69 +613,6 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 
 	/* Editors */
 
-	// GridMap
-	_initial_set("editors/grid_map/pick_distance", 5000.0);
-
-	// 3D
-	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/3d/primary_grid_color", Color(0.56, 0.56, 0.56, 0.5), "")
-	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/3d/secondary_grid_color", Color(0.38, 0.38, 0.38, 0.5), "")
-
-	// Use a similar color to the 2D editor selection.
-	EDITOR_SETTING_USAGE(Variant::COLOR, PROPERTY_HINT_NONE, "editors/3d/selection_box_color", Color(1.0, 0.5, 0), "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-	EDITOR_SETTING_USAGE(Variant::COLOR, PROPERTY_HINT_NONE, "editors/3d_gizmos/gizmo_colors/instantiated", Color(0.7, 0.7, 0.7, 0.6), "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-	EDITOR_SETTING_USAGE(Variant::COLOR, PROPERTY_HINT_NONE, "editors/3d_gizmos/gizmo_colors/joint", Color(0.5, 0.8, 1), "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-	EDITOR_SETTING_USAGE(Variant::COLOR, PROPERTY_HINT_NONE, "editors/3d_gizmos/gizmo_colors/shape", Color(0.5, 0.7, 1), "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
-
-	// If a line is a multiple of this, it uses the primary grid color.
-	// Use a power of 2 value by default as it's more common to use powers of 2 in level design.
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "editors/3d/primary_grid_steps", 8, "1,100,1")
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "editors/3d/grid_size", 200, "1,2000,1")
-	// Higher values produce graphical artifacts when far away unless View Z-Far
-	// is increased significantly more than it really should need to be.
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "editors/3d/grid_division_level_max", 2, "-1,3,1")
-	// Lower values produce graphical artifacts regardless of view clipping planes, so limit to -2 as a lower bound.
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "editors/3d/grid_division_level_min", 0, "-2,2,1")
-	// -0.2 seems like a sensible default. -1.0 gives Blender-like behavior, 0.5 gives huge grids.
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/grid_division_level_bias", -0.2, "-1.0,0.5,0.1")
-
-	_initial_set("editors/3d/grid_xz_plane", true);
-	_initial_set("editors/3d/grid_xy_plane", false);
-	_initial_set("editors/3d/grid_yz_plane", false);
-
-	// Use a lower default FOV for the 3D camera compared to the
-	// Camera3D node as the 3D viewport doesn't span the whole screen.
-	// This means it's technically viewed from a further distance, which warrants a narrower FOV.
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/default_fov", 70.0, "1,179,0.1,degrees")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/default_z_near", 0.05, "0.01,10,0.01,or_greater,suffix:m")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/default_z_far", 4000.0, "0.1,4000,0.1,or_greater,suffix:m")
-
-	// 3D: Navigation
-	_initial_set("editors/3d/navigation/invert_x_axis", false);
-	_initial_set("editors/3d/navigation/invert_y_axis", false);
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/navigation/navigation_scheme", 0, "Godot,Maya,Modo")
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/navigation/zoom_style", 0, "Vertical,Horizontal")
-
-	_initial_set("editors/3d/navigation/emulate_numpad", false);
-	_initial_set("editors/3d/navigation/emulate_3_button_mouse", false);
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/navigation/orbit_modifier", 0, "None,Shift,Alt,Meta,Ctrl")
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/navigation/pan_modifier", 1, "None,Shift,Alt,Meta,Ctrl")
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/navigation/zoom_modifier", 4, "None,Shift,Alt,Meta,Ctrl")
-	_initial_set("editors/3d/navigation/warped_mouse_panning", true);
-
-	// 3D: Navigation feel
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/navigation_feel/orbit_sensitivity", 0.25, "0.01,2,0.001")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/navigation_feel/orbit_inertia", 0.0, "0,1,0.001")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/navigation_feel/translation_inertia", 0.05, "0,1,0.001")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/navigation_feel/zoom_inertia", 0.05, "0,1,0.001")
-
-	// 3D: Freelook
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/freelook/freelook_navigation_scheme", 0, "Default,Partially Axis-Locked (id Tech),Fully Axis-Locked (Minecraft)")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/freelook/freelook_sensitivity", 0.25, "0.01,2,0.001")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/freelook/freelook_inertia", 0.0, "0,1,0.001")
-	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/freelook/freelook_base_speed", 5.0, "0,10,0.01")
-	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/freelook/freelook_activation_modifier", 0, "None,Shift,Alt,Meta,Ctrl")
-	_initial_set("editors/3d/freelook/freelook_speed_zoom_link", false);
-
 	// 2D
 	_initial_set("editors/2d/grid_color", Color(1.0, 1.0, 1.0, 0.07));
 	_initial_set("editors/2d/guides_color", Color(0.6, 0.0, 0.8));
@@ -786,12 +713,12 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 
 #if defined(WEB_ENABLED)
 	// Web platform only supports `gl_compatibility`.
-	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_ENUM, "project_manager/default_renderer", "gl_compatibility", "forward_plus,mobile,gl_compatibility")
+	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_ENUM, "project_manager/default_renderer", "gl_compatibility", "gl_compatibility")
 #elif defined(ANDROID_ENABLED)
 	// Use more suitable rendering method by default.
-	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_ENUM, "project_manager/default_renderer", "mobile", "forward_plus,mobile,gl_compatibility")
+	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_ENUM, "project_manager/default_renderer", "gl_compatibility", "gl_compatibility")
 #else
-	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_ENUM, "project_manager/default_renderer", "forward_plus", "forward_plus,mobile,gl_compatibility")
+	EDITOR_SETTING(Variant::STRING, PROPERTY_HINT_ENUM, "project_manager/default_renderer", "gl_compatibility", "gl_compatibility")
 #endif
 
 	if (p_extra_config.is_valid()) {

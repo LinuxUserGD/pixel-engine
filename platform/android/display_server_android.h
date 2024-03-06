@@ -33,11 +33,6 @@
 
 #include "servers/display_server.h"
 
-#if defined(VULKAN_ENABLED)
-class VulkanContextAndroid;
-class RenderingDeviceVulkan;
-#endif
-
 class DisplayServerAndroid : public DisplayServer {
 	// No need to register with GDCLASS, it's platform-specific and nothing is added.
 
@@ -71,11 +66,6 @@ class DisplayServerAndroid : public DisplayServer {
 	bool swap_buffers_flag;
 
 	CursorShape cursor_shape = CursorShape::CURSOR_ARROW;
-
-#if defined(VULKAN_ENABLED)
-	VulkanContextAndroid *context_vulkan = nullptr;
-	RenderingDeviceVulkan *rendering_device_vulkan = nullptr;
-#endif
 
 	ObjectID window_attached_instance_id;
 

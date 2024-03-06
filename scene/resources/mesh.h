@@ -37,10 +37,7 @@
 #include "scene/resources/material.h"
 #include "servers/rendering_server.h"
 
-class ConcavePolygonShape3D;
-class ConvexPolygonShape3D;
 class MeshConvexDecompositionSettings;
-class Shape3D;
 
 class Mesh : public Resource {
 	GDCLASS(Mesh, Resource);
@@ -48,7 +45,6 @@ class Mesh : public Resource {
 	mutable Ref<TriangleMesh> triangle_mesh; //cached
 	mutable Vector<Ref<TriangleMesh>> surface_triangle_meshes; //cached
 	mutable Vector<Vector3> debug_lines;
-	Size2i lightmap_size_hint;
 
 	Vector<Vector3> _get_faces() const;
 
@@ -185,17 +181,11 @@ public:
 
 	Ref<Mesh> create_outline(float p_margin) const;
 
-	void set_lightmap_size_hint(const Size2i &p_size);
-	Size2i get_lightmap_size_hint() const;
 	void clear_cache() const;
 
 	typedef Vector<Vector<Vector3>> (*ConvexDecompositionFunc)(const real_t *p_vertices, int p_vertex_count, const uint32_t *p_triangles, int p_triangle_count, const Ref<MeshConvexDecompositionSettings> &p_settings, Vector<Vector<uint32_t>> *r_convex_indices);
 
 	static ConvexDecompositionFunc convex_decomposition_function;
-
-	Vector<Ref<Shape3D>> convex_decompose(const Ref<MeshConvexDecompositionSettings> &p_settings) const;
-	Ref<ConvexPolygonShape3D> create_convex_shape(bool p_clean = true, bool p_simplify = false) const;
-	Ref<ConcavePolygonShape3D> create_trimesh_shape() const;
 
 	virtual int get_builtin_bind_pose_count() const;
 	virtual Transform3D get_builtin_bind_pose(int p_index) const;
@@ -380,9 +370,6 @@ public:
 	virtual RID get_rid() const override;
 
 	void regen_normal_maps();
-
-	Error lightmap_unwrap(const Transform3D &p_base_transform = Transform3D(), float p_texel_size = 0.05);
-	Error lightmap_unwrap_cached(const Transform3D &p_base_transform, float p_texel_size, const Vector<uint8_t> &p_src_cache, Vector<uint8_t> &r_dst_cache, bool p_generate_cache = true);
 
 	virtual void reload_from_file() override;
 

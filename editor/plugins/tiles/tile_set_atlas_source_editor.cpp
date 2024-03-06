@@ -54,8 +54,6 @@
 #include "core/math/geometry_2d.h"
 #include "core/os/keyboard.h"
 
-#include "servers/navigation_server_2d.h"
-
 void TileSetAtlasSourceEditor::TileSetAtlasSourceProxyObject::set_id(int p_id) {
 	ERR_FAIL_COND(p_id < 0);
 	if (source_id == p_id) {
@@ -761,34 +759,6 @@ void TileSetAtlasSourceEditor::_update_tile_data_editors() {
 		item->set_icon_modulate(0, disabled_color);
 		item->set_text(0, TTR("No physics layers"));
 		item->set_tooltip_text(0, TTR("Create and customize physics layers in the inspector of the TileSet resource."));
-		item->set_selectable(0, false);
-		item->set_custom_color(0, disabled_color);
-	}
-
-	// --- Navigation ---
-	ADD_TILE_DATA_EDITOR_GROUP(TTR("Navigation"));
-	for (int i = 0; i < tile_set->get_navigation_layers_count(); i++) {
-		ADD_TILE_DATA_EDITOR(group, vformat(TTR("Navigation Layer %d"), i), vformat("navigation_layer_%d", i));
-		if (!tile_data_editors.has(vformat("navigation_layer_%d", i))) {
-			TileDataNavigationEditor *tile_data_navigation_editor = memnew(TileDataNavigationEditor());
-			tile_data_navigation_editor->hide();
-			tile_data_navigation_editor->set_navigation_layer(i);
-			tile_data_navigation_editor->connect("needs_redraw", callable_mp((CanvasItem *)tile_atlas_control_unscaled, &Control::queue_redraw));
-			tile_data_navigation_editor->connect("needs_redraw", callable_mp((CanvasItem *)alternative_tiles_control_unscaled, &Control::queue_redraw));
-			tile_data_editors[vformat("navigation_layer_%d", i)] = tile_data_navigation_editor;
-		}
-	}
-	for (int i = tile_set->get_navigation_layers_count(); tile_data_editors.has(vformat("navigation_layer_%d", i)); i++) {
-		tile_data_editors[vformat("navigation_layer_%d", i)]->queue_free();
-		tile_data_editors.erase(vformat("navigation_layer_%d", i));
-	}
-
-	if (tile_set->get_navigation_layers_count() == 0) {
-		item = tile_data_editors_tree->create_item(group);
-		item->set_icon(0, get_editor_theme_icon("Info"));
-		item->set_icon_modulate(0, disabled_color);
-		item->set_text(0, TTR("No navigation layers"));
-		item->set_tooltip_text(0, TTR("Create and customize navigation layers in the inspector of the TileSet resource."));
 		item->set_selectable(0, false);
 		item->set_custom_color(0, disabled_color);
 	}
@@ -2745,26 +2715,6 @@ void EditorPropertyTilePolygon::_polygons_changed() {
 				occluder->set_polygon(generic_tile_polygon_editor->get_polygon(0));
 			}
 			emit_changed(get_edited_property(), occluder);
-		} else if (base_type == "NavigationPolygon") {
-			Ref<NavigationPolygon> navigation_polygon;
-			if (generic_tile_polygon_editor->get_polygon_count() >= 1) {
-				navigation_polygon.instantiate();
-
-				if (generic_tile_polygon_editor->get_polygon_count() > 0) {
-					Ref<NavigationMeshSourceGeometryData2D> source_geometry_data;
-					source_geometry_data.instantiate();
-					for (int i = 0; i < generic_tile_polygon_editor->get_polygon_count(); i++) {
-						Vector<Vector2> polygon = generic_tile_polygon_editor->get_polygon(i);
-						navigation_polygon->add_outline(polygon);
-						source_geometry_data->add_traversable_outline(polygon);
-					}
-					navigation_polygon->set_agent_radius(0.0);
-					NavigationServer2D::get_singleton()->bake_from_source_geometry_data(navigation_polygon, source_geometry_data);
-				} else {
-					navigation_polygon->clear();
-				}
-			}
-			emit_changed(get_edited_property(), navigation_polygon);
 		}
 	} else {
 		if (base_type.is_empty()) {
@@ -2807,15 +2757,6 @@ void EditorPropertyTilePolygon::update_property() {
 			generic_tile_polygon_editor->clear_polygons();
 			if (occluder.is_valid()) {
 				generic_tile_polygon_editor->add_polygon(occluder->get_polygon());
-			}
-		} else if (base_type == "NavigationPolygon") {
-			// Single OccluderPolygon2D.
-			Ref<NavigationPolygon> navigation_polygon = get_edited_property_value();
-			generic_tile_polygon_editor->clear_polygons();
-			if (navigation_polygon.is_valid()) {
-				for (int i = 0; i < navigation_polygon->get_outline_count(); i++) {
-					generic_tile_polygon_editor->add_polygon(navigation_polygon->get_outline(i));
-				}
 			}
 		}
 	} else {
@@ -2897,16 +2838,6 @@ bool EditorInspectorPluginTileData::parse_property(Object *p_object, const Varia
 			if (components[2] == "points") {
 				return true;
 			}
-		}
-	} else if (components.size() == 2 && components[0].begins_with("navigation_layer_") && components[0].trim_prefix("navigation_layer_").is_valid_int()) {
-		// Navigation layers.
-		int layer_index = components[0].trim_prefix("navigation_layer_").to_int();
-		ERR_FAIL_COND_V(layer_index < 0, false);
-		if (components[1] == "polygon") {
-			EditorPropertyTilePolygon *ep = memnew(EditorPropertyTilePolygon);
-			ep->setup_single_mode(p_path, "NavigationPolygon");
-			add_property_editor(p_path, ep);
-			return true;
 		}
 	}
 	return false;

@@ -50,17 +50,6 @@
 #import <dlfcn.h>
 #include <sys/sysctl.h>
 
-#if defined(VULKAN_ENABLED)
-#include "servers/rendering/renderer_rd/renderer_compositor_rd.h"
-
-#import <QuartzCore/CAMetalLayer.h>
-#ifdef USE_VOLK
-#include <volk.h>
-#else
-#include <vulkan/vulkan.h>
-#endif
-#endif
-
 // Initialization order between compilation units is not guaranteed,
 // so we use this as a hack to ensure certain code is called before
 // everything else, but after all units are initialized.

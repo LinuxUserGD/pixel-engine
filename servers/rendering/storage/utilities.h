@@ -44,13 +44,11 @@ public:
 		DEPENDENCY_CHANGED_MULTIMESH,
 		DEPENDENCY_CHANGED_MULTIMESH_VISIBLE_INSTANCES,
 		DEPENDENCY_CHANGED_PARTICLES,
-		DEPENDENCY_CHANGED_PARTICLES_INSTANCES,
 		DEPENDENCY_CHANGED_DECAL,
 		DEPENDENCY_CHANGED_SKELETON_DATA,
 		DEPENDENCY_CHANGED_SKELETON_BONES,
 		DEPENDENCY_CHANGED_LIGHT,
 		DEPENDENCY_CHANGED_LIGHT_SOFT_SHADOW_AND_PROJECTOR,
-		DEPENDENCY_CHANGED_REFLECTION_PROBE,
 	};
 
 	void changed_notify(DependencyChangedNotification p_notification);
@@ -131,18 +129,6 @@ public:
 	/* DEPENDENCIES */
 
 	virtual void base_update_dependency(RID p_base, DependencyTracker *p_instance) = 0;
-
-	/* VISIBILITY NOTIFIER */
-
-	virtual RID visibility_notifier_allocate() = 0;
-	virtual void visibility_notifier_initialize(RID p_notifier) = 0;
-	virtual void visibility_notifier_free(RID p_notifier) = 0;
-
-	virtual void visibility_notifier_set_aabb(RID p_notifier, const AABB &p_aabb) = 0;
-	virtual void visibility_notifier_set_callbacks(RID p_notifier, const Callable &p_enter_callbable, const Callable &p_exit_callable) = 0;
-
-	virtual AABB visibility_notifier_get_aabb(RID p_notifier) const = 0;
-	virtual void visibility_notifier_call(RID p_notifier, bool p_enter, bool p_deferred) = 0;
 
 	/* TIMING */
 

@@ -660,7 +660,6 @@ void OS::_bind_methods() {
 	ADD_PROPERTY_DEFAULT("low_processor_usage_mode", false);
 	ADD_PROPERTY_DEFAULT("low_processor_usage_mode_sleep_usec", 6900);
 
-	BIND_ENUM_CONSTANT(RENDERING_DRIVER_VULKAN);
 	BIND_ENUM_CONSTANT(RENDERING_DRIVER_OPENGL3);
 
 	BIND_ENUM_CONSTANT(SYSTEM_DIR_DESKTOP);
@@ -929,32 +928,6 @@ Geometry3D *Geometry3D::get_singleton() {
 	return singleton;
 }
 
-Vector<Vector3> Geometry3D::compute_convex_mesh_points(const TypedArray<Plane> &p_planes) {
-	Vector<Plane> planes_vec;
-	int size = p_planes.size();
-	planes_vec.resize(size);
-	for (int i = 0; i < size; ++i) {
-		planes_vec.set(i, p_planes[i]);
-	}
-	Variant ret = ::Geometry3D::compute_convex_mesh_points(planes_vec.ptr(), size);
-	return ret;
-}
-
-TypedArray<Plane> Geometry3D::build_box_planes(const Vector3 &p_extents) {
-	Variant ret = ::Geometry3D::build_box_planes(p_extents);
-	return ret;
-}
-
-TypedArray<Plane> Geometry3D::build_cylinder_planes(float p_radius, float p_height, int p_sides, Vector3::Axis p_axis) {
-	Variant ret = ::Geometry3D::build_cylinder_planes(p_radius, p_height, p_sides, p_axis);
-	return ret;
-}
-
-TypedArray<Plane> Geometry3D::build_capsule_planes(float p_radius, float p_height, int p_sides, int p_lats, Vector3::Axis p_axis) {
-	Variant ret = ::Geometry3D::build_capsule_planes(p_radius, p_height, p_sides, p_lats, p_axis);
-	return ret;
-}
-
 Vector<Vector3> Geometry3D::get_closest_points_between_segments(const Vector3 &p1, const Vector3 &p2, const Vector3 &q1, const Vector3 &q2) {
 	Vector3 r1, r2;
 	::Geometry3D::get_closest_points_between_segments(p1, p2, q1, q2, r1, r2);
@@ -965,16 +938,6 @@ Vector<Vector3> Geometry3D::get_closest_points_between_segments(const Vector3 &p
 Vector3 Geometry3D::get_closest_point_to_segment(const Vector3 &p_point, const Vector3 &p_a, const Vector3 &p_b) {
 	Vector3 s[2] = { p_a, p_b };
 	return ::Geometry3D::get_closest_point_to_segment(p_point, s);
-}
-
-Vector3 Geometry3D::get_closest_point_to_segment_uncapped(const Vector3 &p_point, const Vector3 &p_a, const Vector3 &p_b) {
-	Vector3 s[2] = { p_a, p_b };
-	return ::Geometry3D::get_closest_point_to_segment_uncapped(p_point, s);
-}
-
-Vector3 Geometry3D::get_triangle_barycentric_coords(const Vector3 &p_point, const Vector3 &p_v0, const Vector3 &p_v1, const Vector3 &p_v2) {
-	Vector3 res = ::Geometry3D::triangle_get_barycentric_coords(p_v0, p_v1, p_v2, p_point);
-	return res;
 }
 
 Variant Geometry3D::ray_intersects_triangle(const Vector3 &p_from, const Vector3 &p_dir, const Vector3 &p_v0, const Vector3 &p_v1, const Vector3 &p_v2) {
@@ -995,71 +958,13 @@ Variant Geometry3D::segment_intersects_triangle(const Vector3 &p_from, const Vec
 	}
 }
 
-Vector<Vector3> Geometry3D::segment_intersects_sphere(const Vector3 &p_from, const Vector3 &p_to, const Vector3 &p_sphere_pos, real_t p_sphere_radius) {
-	Vector<Vector3> r;
-	Vector3 res, norm;
-	if (!::Geometry3D::segment_intersects_sphere(p_from, p_to, p_sphere_pos, p_sphere_radius, &res, &norm)) {
-		return r;
-	}
-
-	r.resize(2);
-	r.set(0, res);
-	r.set(1, norm);
-	return r;
-}
-
-Vector<Vector3> Geometry3D::segment_intersects_cylinder(const Vector3 &p_from, const Vector3 &p_to, float p_height, float p_radius) {
-	Vector<Vector3> r;
-	Vector3 res, norm;
-	if (!::Geometry3D::segment_intersects_cylinder(p_from, p_to, p_height, p_radius, &res, &norm)) {
-		return r;
-	}
-
-	r.resize(2);
-	r.set(0, res);
-	r.set(1, norm);
-	return r;
-}
-
-Vector<Vector3> Geometry3D::segment_intersects_convex(const Vector3 &p_from, const Vector3 &p_to, const TypedArray<Plane> &p_planes) {
-	Vector<Vector3> r;
-	Vector3 res, norm;
-	Vector<Plane> planes = Variant(p_planes);
-	if (!::Geometry3D::segment_intersects_convex(p_from, p_to, planes.ptr(), planes.size(), &res, &norm)) {
-		return r;
-	}
-
-	r.resize(2);
-	r.set(0, res);
-	r.set(1, norm);
-	return r;
-}
-
-Vector<Vector3> Geometry3D::clip_polygon(const Vector<Vector3> &p_points, const Plane &p_plane) {
-	return ::Geometry3D::clip_polygon(p_points, p_plane);
-}
-
 void Geometry3D::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("compute_convex_mesh_points", "planes"), &Geometry3D::compute_convex_mesh_points);
-	ClassDB::bind_method(D_METHOD("build_box_planes", "extents"), &Geometry3D::build_box_planes);
-	ClassDB::bind_method(D_METHOD("build_cylinder_planes", "radius", "height", "sides", "axis"), &Geometry3D::build_cylinder_planes, DEFVAL(Vector3::AXIS_Z));
-	ClassDB::bind_method(D_METHOD("build_capsule_planes", "radius", "height", "sides", "lats", "axis"), &Geometry3D::build_capsule_planes, DEFVAL(Vector3::AXIS_Z));
-
 	ClassDB::bind_method(D_METHOD("get_closest_points_between_segments", "p1", "p2", "q1", "q2"), &Geometry3D::get_closest_points_between_segments);
 
 	ClassDB::bind_method(D_METHOD("get_closest_point_to_segment", "point", "s1", "s2"), &Geometry3D::get_closest_point_to_segment);
 
-	ClassDB::bind_method(D_METHOD("get_closest_point_to_segment_uncapped", "point", "s1", "s2"), &Geometry3D::get_closest_point_to_segment_uncapped);
-
-	ClassDB::bind_method(D_METHOD("get_triangle_barycentric_coords", "point", "a", "b", "c"), &Geometry3D::get_triangle_barycentric_coords);
-
 	ClassDB::bind_method(D_METHOD("ray_intersects_triangle", "from", "dir", "a", "b", "c"), &Geometry3D::ray_intersects_triangle);
 	ClassDB::bind_method(D_METHOD("segment_intersects_triangle", "from", "to", "a", "b", "c"), &Geometry3D::segment_intersects_triangle);
-	ClassDB::bind_method(D_METHOD("segment_intersects_sphere", "from", "to", "sphere_position", "sphere_radius"), &Geometry3D::segment_intersects_sphere);
-	ClassDB::bind_method(D_METHOD("segment_intersects_cylinder", "from", "to", "height", "radius"), &Geometry3D::segment_intersects_cylinder);
-	ClassDB::bind_method(D_METHOD("segment_intersects_convex", "from", "to", "planes"), &Geometry3D::segment_intersects_convex);
-
-	ClassDB::bind_method(D_METHOD("clip_polygon", "points", "plane"), &Geometry3D::clip_polygon);
 }
 
 ////// Marshalls //////

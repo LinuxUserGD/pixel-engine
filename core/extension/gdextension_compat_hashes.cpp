@@ -376,10 +376,6 @@ void GDExtensionCompatHashes::initialize() {
 		{ "offset_polygon", 3837618924, 1275354010 },
 		{ "offset_polyline", 328033063, 2328231778 },
 	});
-	mappings.insert("Geometry3D", {
-		{ "build_cylinder_planes", 3142160516, 449920067 },
-		{ "build_capsule_planes", 410870045, 2113592876 },
-	});
 	mappings.insert("GraphNode", {
 		{ "set_slot", 902131739, 2873310869 },
 	});
@@ -459,12 +455,6 @@ void GDExtensionCompatHashes::initialize() {
 	});
 	mappings.insert("NavigationServer2D", {
 		{ "map_get_path", 56240621, 3146466012 },
-	});
-	mappings.insert("NavigationServer3D", {
-		{ "map_get_path", 2121045993, 1187418690 },
-		{ "parse_source_geometry_data", 3703028813, 685862123 },
-		{ "bake_from_source_geometry_data", 3669016597, 2469318639 },
-		{ "bake_from_source_geometry_data_async", 3669016597, 2469318639 },
 	});
 	mappings.insert("Node", {
 		{ "add_child", 3070154285, 3863233950 },
@@ -590,21 +580,6 @@ void GDExtensionCompatHashes::initialize() {
 		{ "joint_make_pin", 2288600450, 1612646186 },
 		{ "joint_make_groove", 3573265764, 481430435 },
 		{ "joint_make_damped_spring", 206603952, 1994657646 },
-	});
-	mappings.insert("PhysicsServer3D", {
-#ifdef REAL_T_IS_DOUBLE
-		{ "area_add_shape", 4040559639, 183938777 },
-		{ "body_add_shape", 4040559639, 183938777 },
-		{ "body_apply_impulse", 110375048, 2238283471 },
-		{ "body_apply_force", 110375048, 2238283471 },
-		{ "body_add_constant_force", 110375048, 2238283471 },
-#else
-		{ "area_add_shape", 4040559639, 3711419014 },
-		{ "body_add_shape", 4040559639, 3711419014 },
-		{ "body_apply_impulse", 110375048, 390416203 },
-		{ "body_apply_force", 110375048, 390416203 },
-		{ "body_add_constant_force", 110375048, 390416203 },
-#endif
 	});
 	mappings.insert("PopupMenu", {
 		{ "add_item", 3224536192, 3674230041 },

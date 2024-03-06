@@ -199,11 +199,6 @@ def configure(env: "Environment"):
     env.Append(CPPDEFINES=["ANDROID_ENABLED", "UNIX_ENABLED"])
     env.Append(LIBS=["OpenSLES", "EGL", "android", "log", "z", "dl"])
 
-    if env["vulkan"]:
-        env.Append(CPPDEFINES=["VULKAN_ENABLED"])
-        if not env["use_volk"]:
-            env.Append(LIBS=["vulkan"])
-
     if env["opengl3"]:
         env.Append(CPPDEFINES=["GLES3_ENABLED"])
         env.Append(LIBS=["GLESv3"])

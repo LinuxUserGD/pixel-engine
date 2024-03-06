@@ -10,25 +10,25 @@ used, are described on [Godot's website](https://godotengine.org/donate).
 The following is a list of the current monthly donors, who will have their
 generous deed immortalized in the next stable release of Godot Engine.
 
-## Patrons
+## Godot Engine Patrons
 
     OSS Capital <https://oss.capital>
     Re-Logic <https://re-logic.com>
 
-## Platinum sponsors
+## Godot Engine Platinum sponsors
 
     Heroic Labs <https://heroiclabs.com>
     Ramatak <https://ramatak.com>
     V-Sekai <https://github.com/V-Sekai>
     W4 Games <https://w4games.com>
 
-## Gold sponsors
+## Godot Engine Gold sponsors
 
     Mega Crit <https://www.megacrit.com>
     Prehensile Tales <https://prehensile-tales.com>
     Robot Gentleman <http://robotgentleman.com>
 
-## Silver sponsors
+## Godot Engine Silver sponsors
 
     Affray Interactive <https://scp.games/pandemic>
     Broken Rules <https://brokenrul.es>
@@ -39,13 +39,13 @@ generous deed immortalized in the next stable release of Godot Engine.
     Orbital Knight <https://www.orbitalknight.com>
     Playful Studios <https://playfulstudios.com>
 
-## Diamond members
+## Godot Engine Diamond members
 
     Sealow
     Sylv <https://rankith.itch.io/unnamed-space-idle-prototype>
     And 5 anonymous donors
 
-## Titanium members
+## Godot Engine Titanium members
 
     Basically Games
     FDG Entertainment <https://www.fdg-entertainment.com/>
@@ -67,7 +67,7 @@ generous deed immortalized in the next stable release of Godot Engine.
     Wilfred James <https://twitter.com/0430agi>
     And 8 anonymous donors
 
-## Platinum members
+## Godot Engine Platinum members
 
     AD Ford
     Andy Touch
@@ -105,7 +105,7 @@ generous deed immortalized in the next stable release of Godot Engine.
     nate-wilkins
     And 18 anonymous donors
 
-## Gold members
+## Godot Engine Gold members
 
     @reilaos
     Antti Vesanen
@@ -608,7 +608,7 @@ generous deed immortalized in the next stable release of Godot Engine.
 
     And 241 anonymous donors
 
-## Silver and bronze donors
+## Godot Engine Silver and bronze donors
 
 There are even more donors that support the project with a small monthly donation.
 Every bit counts and we thank every one of them for their amazing support!

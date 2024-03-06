@@ -176,8 +176,6 @@ class VisualShaderEditor : public VBoxContainer {
 	OptionButton *edit_type = nullptr;
 	OptionButton *edit_type_standard = nullptr;
 	OptionButton *edit_type_particles = nullptr;
-	OptionButton *edit_type_sky = nullptr;
-	OptionButton *edit_type_fog = nullptr;
 	CheckBox *custom_mode_box = nullptr;
 	bool custom_mode_enabled = false;
 
@@ -226,9 +224,7 @@ class VisualShaderEditor : public VBoxContainer {
 
 	enum ShaderModeFlags {
 		MODE_FLAGS_SPATIAL_CANVASITEM = 1,
-		MODE_FLAGS_SKY = 2,
 		MODE_FLAGS_PARTICLES = 4,
-		MODE_FLAGS_FOG = 8,
 	};
 
 	int mode = MODE_FLAGS_SPATIAL_CANVASITEM;

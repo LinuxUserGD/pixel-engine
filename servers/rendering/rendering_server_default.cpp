@@ -86,8 +86,6 @@ void RenderingServerDefault::_draw(bool p_swap_buffers, double frame_step) {
 
 	RSG::particles_storage->update_particles(); //need to be done after instances are updated (colliders and particle transforms), and colliders are rendered
 
-	RSG::scene->render_probes();
-
 	RSG::viewport->draw_viewports(p_swap_buffers);
 	RSG::canvas_render->update();
 
@@ -96,14 +94,7 @@ void RenderingServerDefault::_draw(bool p_swap_buffers, double frame_step) {
 		RSG::rasterizer->end_frame(p_swap_buffers);
 	}
 
-	XRServer *xr_server = XRServer::get_singleton();
-	if (xr_server != nullptr) {
-		// let our XR server know we're done so we can get our frame timing
-		xr_server->end_frame();
-	}
-
 	RSG::canvas->update_visibility_notifiers();
-	RSG::scene->update_visibility_notifiers();
 
 	while (frame_drawn_callbacks.front()) {
 		Callable c = frame_drawn_callbacks.front()->get();
@@ -210,10 +201,6 @@ void RenderingServerDefault::_init() {
 }
 
 void RenderingServerDefault::_finish() {
-	if (test_cube.is_valid()) {
-		free(test_cube);
-	}
-
 	RSG::canvas->finalize();
 	RSG::rasterizer->finalize();
 }
@@ -294,20 +281,9 @@ bool RenderingServerDefault::has_feature(Features p_feature) const {
 	return false;
 }
 
-void RenderingServerDefault::sdfgi_set_debug_probe_select(const Vector3 &p_position, const Vector3 &p_dir) {
-	RSG::scene->sdfgi_set_debug_probe_select(p_position, p_dir);
-}
-
 void RenderingServerDefault::set_print_gpu_profile(bool p_enable) {
 	RSG::utilities->capturing_timestamps = p_enable;
 	print_gpu_profile = p_enable;
-}
-
-RID RenderingServerDefault::get_test_cube() {
-	if (!test_cube.is_valid()) {
-		test_cube = _make_test_cube();
-	}
-	return test_cube;
 }
 
 bool RenderingServerDefault::has_os_feature(const String &p_feature) const {
@@ -380,7 +356,6 @@ void RenderingServerDefault::sync() {
 }
 
 void RenderingServerDefault::draw(bool p_swap_buffers, double frame_step) {
-	ERR_FAIL_COND_MSG(!Thread::is_main_thread(), "Manually triggering the draw function from the RenderingServer can only be done on the main thread. Call this function from the main thread or use call_deferred().");
 	if (create_thread) {
 		command_queue.push(this, &RenderingServerDefault::_thread_draw, p_swap_buffers, frame_step);
 	} else {
@@ -408,17 +383,13 @@ RenderingServerDefault::RenderingServerDefault(bool p_create_thread) :
 	RSG::canvas = memnew(RendererCanvasCull);
 	RSG::viewport = memnew(RendererViewport);
 	RendererSceneCull *sr = memnew(RendererSceneCull);
-	RSG::camera_attributes = memnew(RendererCameraAttributes);
 	RSG::scene = sr;
 	RSG::rasterizer = RendererCompositor::create();
 	RSG::utilities = RSG::rasterizer->get_utilities();
-	RSG::light_storage = RSG::rasterizer->get_light_storage();
 	RSG::material_storage = RSG::rasterizer->get_material_storage();
 	RSG::mesh_storage = RSG::rasterizer->get_mesh_storage();
 	RSG::particles_storage = RSG::rasterizer->get_particles_storage();
 	RSG::texture_storage = RSG::rasterizer->get_texture_storage();
-	RSG::gi = RSG::rasterizer->get_gi();
-	RSG::fog = RSG::rasterizer->get_fog();
 	RSG::canvas_render = RSG::rasterizer->get_canvas();
 	sr->set_scene_render(RSG::rasterizer->get_scene());
 
@@ -430,5 +401,4 @@ RenderingServerDefault::~RenderingServerDefault() {
 	memdelete(RSG::viewport);
 	memdelete(RSG::rasterizer);
 	memdelete(RSG::scene);
-	memdelete(RSG::camera_attributes);
 }

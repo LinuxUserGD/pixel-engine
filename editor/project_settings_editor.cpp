@@ -253,8 +253,7 @@ void ProjectSettingsEditor::shortcut_input(const Ref<InputEvent> &p_event) {
 		}
 
 		if (k->is_match(InputEventKey::create_reference(KeyModifierMask::CMD_OR_CTRL | Key::F))) {
-			search_box->grab_focus();
-			search_box->select_all();
+			search_box->edit(true);
 			handled = true;
 		}
 
@@ -671,9 +670,9 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	restart_label = memnew(Label);
 	restart_label->set_text(TTR("Changed settings will be applied to the editor after restarting."));
 	restart_hb->add_child(restart_label);
-	restart_hb->add_spacer();
 
 	Button *restart_button = memnew(Button);
+	restart_button->set_h_size_flags(Control::SIZE_EXPAND | Control::SIZE_SHRINK_END);
 	restart_button->connect("pressed", callable_mp(this, &ProjectSettingsEditor::_editor_restart));
 	restart_hb->add_child(restart_button);
 	restart_button->set_text(TTR("Save & Restart"));

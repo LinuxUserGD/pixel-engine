@@ -64,7 +64,6 @@ import org.godotengine.godot.utils.benchmarkFile
 import org.godotengine.godot.utils.dumpBenchmark
 import org.godotengine.godot.utils.endBenchmarkMeasure
 import org.godotengine.godot.utils.useBenchmark
-import org.godotengine.godot.xr.XRMode
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -145,7 +144,6 @@ class Godot(private val context: Context) : SensorEventListener {
 	var io: GodotIO? = null
 
 	private var commandLine : MutableList<String> = ArrayList<String>()
-	private var xrMode = XRMode.REGULAR
 	private var expansionPackPath: String = ""
 	private var useApkExpansion = false
 	private var useImmersive = false
@@ -204,11 +202,7 @@ class Godot(private val context: Context) : SensorEventListener {
 			var i = 0
 			while (i < commandLine.size) {
 				val hasExtra: Boolean = i < commandLine.size - 1
-				if (commandLine[i] == XRMode.REGULAR.cmdLineArg) {
-					xrMode = XRMode.REGULAR
-				} else if (commandLine[i] == XRMode.OPENXR.cmdLineArg) {
-					xrMode = XRMode.OPENXR
-				} else if (commandLine[i] == "--debug_opengl") {
+				if (commandLine[i] == "--debug_opengl") {
 					useDebugOpengl = true
 				} else if (commandLine[i] == "--use_immersive") {
 					useImmersive = true
@@ -389,7 +383,7 @@ class Godot(private val context: Context) : SensorEventListener {
 				GodotVulkanRenderView(host, this)
 			} else {
 				// Fallback to openGl
-				GodotGLRenderView(host, this, xrMode, useDebugOpengl)
+				GodotGLRenderView(host, this, useDebugOpengl)
 			}
 
 			if (host == primaryHost) {
@@ -679,9 +673,7 @@ class Godot(private val context: Context) : SensorEventListener {
 	 * Returns true if `Vulkan` is used for rendering.
 	 */
 	private fun usesVulkan(): Boolean {
-		val renderer = GodotLib.getGlobal("rendering/renderer/rendering_method")
-		val renderingDevice = GodotLib.getGlobal("rendering/rendering_device/driver")
-		return ("forward_plus" == renderer || "mobile" == renderer) && "vulkan" == renderingDevice
+		return false
 	}
 
 	/**

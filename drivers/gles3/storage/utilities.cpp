@@ -34,7 +34,6 @@
 
 #include "../rasterizer_gles3.h"
 #include "config.h"
-#include "light_storage.h"
 #include "material_storage.h"
 #include "mesh_storage.h"
 #include "particles_storage.h"
@@ -137,10 +136,6 @@ RS::InstanceType Utilities::get_base_type(RID p_rid) const {
 		return RS::INSTANCE_MESH;
 	} else if (GLES3::MeshStorage::get_singleton()->owns_multimesh(p_rid)) {
 		return RS::INSTANCE_MULTIMESH;
-	} else if (GLES3::LightStorage::get_singleton()->owns_light(p_rid)) {
-		return RS::INSTANCE_LIGHT;
-	} else if (GLES3::LightStorage::get_singleton()->owns_lightmap(p_rid)) {
-		return RS::INSTANCE_LIGHTMAP;
 	} else if (GLES3::ParticlesStorage::get_singleton()->owns_particles(p_rid)) {
 		return RS::INSTANCE_PARTICLES;
 	} else if (GLES3::ParticlesStorage::get_singleton()->owns_particles_collision(p_rid)) {
@@ -174,12 +169,6 @@ bool Utilities::free(RID p_rid) {
 	} else if (GLES3::MeshStorage::get_singleton()->owns_mesh_instance(p_rid)) {
 		GLES3::MeshStorage::get_singleton()->mesh_instance_free(p_rid);
 		return true;
-	} else if (GLES3::LightStorage::get_singleton()->owns_light(p_rid)) {
-		GLES3::LightStorage::get_singleton()->light_free(p_rid);
-		return true;
-	} else if (GLES3::LightStorage::get_singleton()->owns_lightmap(p_rid)) {
-		GLES3::LightStorage::get_singleton()->lightmap_free(p_rid);
-		return true;
 	} else if (GLES3::ParticlesStorage::get_singleton()->owns_particles(p_rid)) {
 		GLES3::ParticlesStorage::get_singleton()->particles_free(p_rid);
 		return true;
@@ -209,9 +198,6 @@ void Utilities::base_update_dependency(RID p_base, DependencyTracker *p_instance
 		if (multimesh->mesh.is_valid()) {
 			base_update_dependency(multimesh->mesh, p_instance);
 		}
-	} else if (LightStorage::get_singleton()->owns_light(p_base)) {
-		Light *l = LightStorage::get_singleton()->get_light(p_base);
-		p_instance->update_dependency(&l->dependency);
 	} else if (ParticlesStorage::get_singleton()->owns_particles(p_base)) {
 		Dependency *dependency = ParticlesStorage::get_singleton()->particles_get_dependency(p_base);
 		p_instance->update_dependency(dependency);
@@ -219,31 +205,6 @@ void Utilities::base_update_dependency(RID p_base, DependencyTracker *p_instance
 		Dependency *dependency = ParticlesStorage::get_singleton()->particles_collision_get_dependency(p_base);
 		p_instance->update_dependency(dependency);
 	}
-}
-
-/* VISIBILITY NOTIFIER */
-
-RID Utilities::visibility_notifier_allocate() {
-	return RID();
-}
-
-void Utilities::visibility_notifier_initialize(RID p_notifier) {
-}
-
-void Utilities::visibility_notifier_free(RID p_notifier) {
-}
-
-void Utilities::visibility_notifier_set_aabb(RID p_notifier, const AABB &p_aabb) {
-}
-
-void Utilities::visibility_notifier_set_callbacks(RID p_notifier, const Callable &p_enter_callbable, const Callable &p_exit_callable) {
-}
-
-AABB Utilities::visibility_notifier_get_aabb(RID p_notifier) const {
-	return AABB();
-}
-
-void Utilities::visibility_notifier_call(RID p_notifier, bool p_enter, bool p_deferred) {
 }
 
 /* TIMING */
@@ -327,8 +288,6 @@ void Utilities::update_dirty_resources() {
 }
 
 void Utilities::set_debug_generate_wireframes(bool p_generate) {
-	Config *config = Config::get_singleton();
-	config->generate_wireframes = p_generate;
 }
 
 bool Utilities::has_os_feature(const String &p_feature) const {

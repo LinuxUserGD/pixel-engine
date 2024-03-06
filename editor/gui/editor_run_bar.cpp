@@ -273,7 +273,6 @@ void EditorRunBar::play_main_scene(bool p_from_native) {
 }
 
 void EditorRunBar::play_current_scene(bool p_reload) {
-	EditorNode::get_singleton()->save_default_environment();
 	stop_playing();
 
 	current_mode = RunMode::RUN_CURRENT;
@@ -368,6 +367,7 @@ EditorRunBar::EditorRunBar() {
 
 	main_hbox = memnew(HBoxContainer);
 	main_panel->add_child(main_hbox);
+	main_hbox->add_theme_constant_override("separation", 0);
 
 	play_button = memnew(Button);
 	main_hbox->add_child(play_button);

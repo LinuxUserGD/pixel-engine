@@ -92,8 +92,7 @@ void EditorSettingsDialog::popup_edit_settings() {
 	inspector->edit(EditorSettings::get_singleton());
 	inspector->get_inspector()->update_tree();
 
-	search_box->select_all();
-	search_box->grab_focus();
+	search_box->edit(true);
 
 	_update_shortcuts();
 	set_process_shortcut_input(true);
@@ -674,8 +673,7 @@ void EditorSettingsDialog::_focus_current_search_box() {
 	}
 
 	if (current_search_box) {
-		current_search_box->grab_focus();
-		current_search_box->select_all();
+		current_search_box->edit(true);
 	}
 }
 
@@ -739,8 +737,8 @@ EditorSettingsDialog::EditorSettingsDialog() {
 	restart_label = memnew(Label);
 	restart_label->set_text(TTR("The editor must be restarted for changes to take effect."));
 	restart_hb->add_child(restart_label);
-	restart_hb->add_spacer();
 	Button *restart_button = memnew(Button);
+	restart_button->set_h_size_flags(Control::SIZE_EXPAND | Control::SIZE_SHRINK_END);
 	restart_button->connect("pressed", callable_mp(this, &EditorSettingsDialog::_editor_restart));
 	restart_hb->add_child(restart_button);
 	restart_button->set_text(TTR("Save & Restart"));

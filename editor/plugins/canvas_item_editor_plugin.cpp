@@ -3868,20 +3868,23 @@ void CanvasItemEditor::set_current_tool(Tool p_tool) {
 
 void CanvasItemEditor::_update_editor_settings() {
 	button_center_view->set_icon(get_editor_theme_icon(SNAME("CenterView")));
-	select_button->set_icon(get_editor_theme_icon(SNAME("ToolSelect")));
+
+	select_popup->set_item_icon(TOOL_SELECT, get_editor_theme_icon(SNAME("ToolSelect")));
+	select_popup->set_item_icon(TOOL_MOVE, get_editor_theme_icon(SNAME("ToolMove")));
+	select_popup->set_item_icon(TOOL_SCALE, get_editor_theme_icon(SNAME("ToolScale")));
+	select_popup->set_item_icon(TOOL_ROTATE, get_editor_theme_icon(SNAME("ToolRotate")));
+	select_popup->set_item_icon(TOOL_LIST_SELECT, get_editor_theme_icon(SNAME("ListSelect")));
+	select_popup->set_item_icon(TOOL_PAN, get_editor_theme_icon(SNAME("ToolPan")));
+	select_popup->set_item_icon(TOOL_RULER, get_editor_theme_icon(SNAME("Ruler")));
+	select_popup->set_item_icon(TOOL_EDIT_PIVOT, get_editor_theme_icon(SNAME("EditPivot")));
+	select_options->select(TOOL_SELECT);
+
 	select_sb->set_texture(get_editor_theme_icon(SNAME("EditorRect2D")));
-	list_select_button->set_icon(get_editor_theme_icon(SNAME("ListSelect")));
-	move_button->set_icon(get_editor_theme_icon(SNAME("ToolMove")));
-	scale_button->set_icon(get_editor_theme_icon(SNAME("ToolScale")));
-	rotate_button->set_icon(get_editor_theme_icon(SNAME("ToolRotate")));
 	smart_snap_button->set_icon(get_editor_theme_icon(SNAME("Snap")));
 	grid_snap_button->set_icon(get_editor_theme_icon(SNAME("SnapGrid")));
 	snap_config_menu->set_icon(get_editor_theme_icon(SNAME("GuiTabMenuHl")));
 	skeleton_menu->set_icon(get_editor_theme_icon(SNAME("Bone")));
 	override_camera_button->set_icon(get_editor_theme_icon(SNAME("Camera2D")));
-	pan_button->set_icon(get_editor_theme_icon(SNAME("ToolPan")));
-	ruler_button->set_icon(get_editor_theme_icon(SNAME("Ruler")));
-	pivot_button->set_icon(get_editor_theme_icon(SNAME("EditPivot")));
 	select_handle = get_editor_theme_icon(SNAME("EditorHandle"));
 	anchor_handle = get_editor_theme_icon(SNAME("EditorControlAnchor"));
 	lock_button->set_icon(get_editor_theme_icon(SNAME("Lock")));
@@ -3961,7 +3964,7 @@ void CanvasItemEditor::_notification(int p_what) {
 			}
 
 			// Activate / Deactivate the pivot tool
-			pivot_button->set_disabled(nb_having_pivot == 0);
+			select_options->set_item_disabled(TOOL_EDIT_PIVOT, nb_having_pivot == 0);
 
 			// Update the viewport if bones changes
 			for (KeyValue<BoneKey, BoneList> &E : bone_list) {
@@ -4169,11 +4172,6 @@ void CanvasItemEditor::_button_override_camera(bool p_pressed) {
 }
 
 void CanvasItemEditor::_button_tool_select(int p_index) {
-	Button *tb[TOOL_MAX] = { select_button, list_select_button, move_button, scale_button, rotate_button, pivot_button, pan_button, ruler_button };
-	for (int i = 0; i < TOOL_MAX; i++) {
-		tb[i]->set_pressed(i == p_index);
-	}
-
 	tool = (Tool)p_index;
 
 	viewport->queue_redraw();
@@ -4354,7 +4352,7 @@ void CanvasItemEditor::_popup_callback(int p_op) {
 		} break;
 		case SNAP_CONFIGURE: {
 			static_cast<SnapDialog *>(snap_dialog)->set_fields(grid_offset, grid_step, primary_grid_step, snap_rotation_offset, snap_rotation_step, snap_scale_step);
-			snap_dialog->popup_centered(Size2(320, 160) * EDSCALE);
+			snap_dialog->popup_centered(Size2(220, 160) * EDSCALE);
 		} break;
 		case SKELETON_SHOW_BONES: {
 			List<Node *> selection = editor_selection->get_selected_node_list();
@@ -5056,22 +5054,22 @@ CanvasItemEditor::CanvasItemEditor() {
 	EditorRunBar::get_singleton()->call_deferred(SNAME("connect"), "play_pressed", callable_mp(this, &CanvasItemEditor::_update_override_camera_button).bind(true));
 	EditorRunBar::get_singleton()->call_deferred(SNAME("connect"), "stop_pressed", callable_mp(this, &CanvasItemEditor::_update_override_camera_button).bind(false));
 
-	// Add some margin to the sides for better esthetics.
-	// This prevents the first button's hover/pressed effect from "touching" the panel's border,
-	// which looks ugly.
-	MarginContainer *toolbar_margin = memnew(MarginContainer);
-	toolbar_margin->add_theme_constant_override("margin_left", 4 * EDSCALE);
-	toolbar_margin->add_theme_constant_override("margin_right", 4 * EDSCALE);
-	add_child(toolbar_margin);
-
 	// A fluid container for all toolbars.
 	HFlowContainer *main_flow = memnew(HFlowContainer);
-	toolbar_margin->add_child(main_flow);
+	main_flow->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	add_child(main_flow);
+
+	// A margin container to provide left and right margins
+	MarginContainer *menu_margin_container = memnew(MarginContainer);
+	menu_margin_container->add_theme_constant_override("margin_left", 2 * EDSCALE);
+	menu_margin_container->add_theme_constant_override("margin_right", 2 * EDSCALE);
+	menu_margin_container->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	main_flow->add_child(menu_margin_container);
 
 	// Main toolbars.
 	HBoxContainer *main_menu_hbox = memnew(HBoxContainer);
-	main_menu_hbox->set_anchors_and_offsets_preset(Control::PRESET_FULL_RECT);
-	main_flow->add_child(main_menu_hbox);
+	main_menu_hbox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	menu_margin_container->add_child(main_menu_hbox);
 
 	bottom_split = memnew(VSplitContainer);
 	add_child(bottom_split);
@@ -5135,6 +5133,7 @@ CanvasItemEditor::CanvasItemEditor() {
 			{ int32_t(Key::KEY_5), int32_t(Key::KP_5) });
 
 	HBoxContainer *controls_hb = memnew(HBoxContainer);
+	controls_hb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	controls_vb->add_child(controls_hb);
 
 	button_center_view = memnew(Button);
@@ -5174,80 +5173,46 @@ CanvasItemEditor::CanvasItemEditor() {
 
 	viewport->add_child(controls_vb);
 
-	select_button = memnew(Button);
-	select_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(select_button);
-	select_button->set_toggle_mode(true);
-	select_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_SELECT));
-	select_button->set_pressed(true);
-	select_button->set_shortcut(ED_SHORTCUT("canvas_item_editor/select_mode", TTR("Select Mode"), Key::Q));
-	select_button->set_shortcut_context(this);
-	select_button->set_tooltip_text(keycode_get_string((Key)KeyModifierMask::CMD_OR_CTRL) + TTR("Drag: Rotate selected node around pivot.") + "\n" + TTR("Alt+Drag: Move selected node.") + "\n" + keycode_get_string((Key)KeyModifierMask::CMD_OR_CTRL) + TTR("Alt+Drag: Scale selected node.") + "\n" + TTR("V: Set selected node's pivot position.") + "\n" + TTR("Alt+RMB: Show list of all nodes at position clicked, including locked.") + "\n" + TTR("RMB: Add node at position clicked."));
+	select_options = memnew(OptionButton);
+	select_options->set_shortcut_context(this);
+	select_options->set_flat(true);
+	// select_options->set_allow_reselect(true);
+	main_menu_hbox->add_child(select_options);
+	select_options->set_h_size_flags(Control::SIZE_SHRINK_BEGIN);
+	select_options->set_tooltip_text(TTR("Select Options"));
+	select_options->connect("item_selected", callable_mp(this, &CanvasItemEditor::_button_tool_select));
 
-	main_menu_hbox->add_child(memnew(VSeparator));
+	select_popup = select_options->get_popup();
 
-	move_button = memnew(Button);
-	move_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(move_button);
-	move_button->set_toggle_mode(true);
-	move_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_MOVE));
-	move_button->set_shortcut(ED_SHORTCUT("canvas_item_editor/move_mode", TTR("Move Mode"), Key::W));
-	move_button->set_shortcut_context(this);
-	move_button->set_tooltip_text(TTR("Move Mode"));
+	select_popup->add_item(" ", TOOL_SELECT);
+	select_popup->set_item_shortcut(TOOL_SELECT, ED_SHORTCUT("canvas_item_editor/select_mode", TTR("Select Mode"), Key::Q));
+	select_popup->set_item_tooltip(TOOL_SELECT, keycode_get_string((Key)KeyModifierMask::CMD_OR_CTRL) + TTR("Drag: Rotate selected node around pivot.") + "\n" + TTR("Alt+Drag: Move selected node.") + "\n" + keycode_get_string((Key)KeyModifierMask::CMD_OR_CTRL) + TTR("Alt+Drag: Scale selected node.") + "\n" + TTR("V: Set selected node's pivot position.") + "\n" + TTR("Alt+RMB: Show list of all nodes at position clicked, including locked.") + "\n" + TTR("RMB: Add node at position clicked."));
 
-	rotate_button = memnew(Button);
-	rotate_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(rotate_button);
-	rotate_button->set_toggle_mode(true);
-	rotate_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_ROTATE));
-	rotate_button->set_shortcut(ED_SHORTCUT("canvas_item_editor/rotate_mode", TTR("Rotate Mode"), Key::E));
-	rotate_button->set_shortcut_context(this);
-	rotate_button->set_tooltip_text(TTR("Rotate Mode"));
+	select_popup->add_item(" ", TOOL_MOVE);
+	select_popup->set_item_shortcut(TOOL_MOVE, ED_SHORTCUT("canvas_item_editor/move_mode", TTR("Move Mode"), Key::W));
+	select_popup->set_item_tooltip(TOOL_MOVE, TTR("Move Mode"));
 
-	scale_button = memnew(Button);
-	scale_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(scale_button);
-	scale_button->set_toggle_mode(true);
-	scale_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_SCALE));
-	scale_button->set_shortcut(ED_SHORTCUT("canvas_item_editor/scale_mode", TTR("Scale Mode"), Key::S));
-	scale_button->set_shortcut_context(this);
-	scale_button->set_tooltip_text(TTR("Shift: Scale proportionally."));
+	select_popup->add_item(" ", TOOL_ROTATE);
+	select_popup->set_item_shortcut(TOOL_ROTATE, ED_SHORTCUT("canvas_item_editor/rotate_mode", TTR("Rotate Mode"), Key::E));
+	select_popup->set_item_tooltip(TOOL_ROTATE, TTR("Rotate Mode"));
 
-	main_menu_hbox->add_child(memnew(VSeparator));
+	select_popup->add_item(" ", TOOL_SCALE);
+	select_popup->set_item_shortcut(TOOL_SCALE, ED_SHORTCUT("canvas_item_editor/scale_mode", TTR("Scale Mode"), Key::S));
+	select_popup->set_item_tooltip(TOOL_SCALE, TTR("Shift: Scale proportionally."));
 
-	list_select_button = memnew(Button);
-	list_select_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(list_select_button);
-	list_select_button->set_toggle_mode(true);
-	list_select_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_LIST_SELECT));
-	list_select_button->set_tooltip_text(TTR("Show list of selectable nodes at position clicked."));
+	select_popup->add_item(" ", TOOL_LIST_SELECT);
+	select_popup->set_item_tooltip(TOOL_LIST_SELECT, TTR("Show list of selectable nodes at position clicked."));
 
-	pivot_button = memnew(Button);
-	pivot_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(pivot_button);
-	pivot_button->set_toggle_mode(true);
-	pivot_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_EDIT_PIVOT));
-	pivot_button->set_tooltip_text(TTR("Click to change object's rotation pivot."));
+	select_popup->add_item(" ", TOOL_EDIT_PIVOT);
+	select_popup->set_item_tooltip(TOOL_EDIT_PIVOT, TTR("Click to change object's rotation pivot."));
 
-	pan_button = memnew(Button);
-	pan_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(pan_button);
-	pan_button->set_toggle_mode(true);
-	pan_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_PAN));
-	pan_button->set_shortcut(ED_SHORTCUT("canvas_item_editor/pan_mode", TTR("Pan Mode"), Key::G));
-	pan_button->set_shortcut_context(this);
-	pan_button->set_tooltip_text(TTR("You can also use Pan View shortcut (Space by default) to pan in any mode."));
+	select_popup->add_item(" ", TOOL_PAN);
+	select_popup->set_item_shortcut(TOOL_PAN, ED_SHORTCUT("canvas_item_editor/pan_mode", TTR("Pan Mode"), Key::G));
+	select_popup->set_item_tooltip(TOOL_PAN, TTR("You can also use Pan View shortcut (Space by default) to pan in any mode."));
 
-	ruler_button = memnew(Button);
-	ruler_button->set_theme_type_variation("FlatButton");
-	main_menu_hbox->add_child(ruler_button);
-	ruler_button->set_toggle_mode(true);
-	ruler_button->connect("pressed", callable_mp(this, &CanvasItemEditor::_button_tool_select).bind(TOOL_RULER));
-	ruler_button->set_shortcut(ED_SHORTCUT("canvas_item_editor/ruler_mode", TTR("Ruler Mode"), Key::R));
-	ruler_button->set_shortcut_context(this);
-	ruler_button->set_tooltip_text(TTR("Ruler Mode"));
-
-	main_menu_hbox->add_child(memnew(VSeparator));
+	select_popup->add_item(" ", TOOL_RULER);
+	select_popup->set_item_shortcut(TOOL_RULER, ED_SHORTCUT("canvas_item_editor/ruler_mode", TTR("Ruler Mode"), Key::R));
+	select_popup->set_item_tooltip(TOOL_RULER, TTR("Ruler Mode"));
 
 	smart_snap_button = memnew(Button);
 	smart_snap_button->set_theme_type_variation("FlatButton");
@@ -5300,8 +5265,6 @@ CanvasItemEditor::CanvasItemEditor() {
 	smartsnap_config_popup->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/snap_other_nodes", TTR("Snap to Other Nodes")), SNAP_USE_OTHER_NODES);
 	smartsnap_config_popup->add_check_shortcut(ED_SHORTCUT("canvas_item_editor/snap_guides", TTR("Snap to Guides")), SNAP_USE_GUIDES);
 
-	main_menu_hbox->add_child(memnew(VSeparator));
-
 	lock_button = memnew(Button);
 	lock_button->set_theme_type_variation("FlatButton");
 	main_menu_hbox->add_child(lock_button);
@@ -5335,8 +5298,6 @@ CanvasItemEditor::CanvasItemEditor() {
 	// Define the shortcut globally (without a context) so that it works if the Scene tree dock is currently focused.
 	ungroup_button->set_shortcut(ED_SHORTCUT("editor/ungroup_selected_nodes", TTR("Ungroup Selected Node(s)"), KeyModifierMask::CMD_OR_CTRL | KeyModifierMask::SHIFT | Key::G));
 
-	main_menu_hbox->add_child(memnew(VSeparator));
-
 	skeleton_menu = memnew(MenuButton);
 	skeleton_menu->set_flat(false);
 	skeleton_menu->set_theme_type_variation("FlatMenuButton");
@@ -5352,8 +5313,6 @@ CanvasItemEditor::CanvasItemEditor() {
 	p->add_shortcut(ED_SHORTCUT("canvas_item_editor/skeleton_make_bones", TTR("Make Bone2D Node(s) from Node(s)"), KeyModifierMask::CMD_OR_CTRL | KeyModifierMask::SHIFT | Key::B), SKELETON_MAKE_BONES);
 	p->connect("id_pressed", callable_mp(this, &CanvasItemEditor::_popup_callback));
 
-	main_menu_hbox->add_child(memnew(VSeparator));
-
 	override_camera_button = memnew(Button);
 	override_camera_button->set_theme_type_variation("FlatButton");
 	main_menu_hbox->add_child(override_camera_button);
@@ -5361,8 +5320,6 @@ CanvasItemEditor::CanvasItemEditor() {
 	override_camera_button->set_toggle_mode(true);
 	override_camera_button->set_disabled(true);
 	_update_override_camera_button(false);
-
-	main_menu_hbox->add_child(memnew(VSeparator));
 
 	view_menu = memnew(MenuButton);
 	view_menu->set_flat(false);
@@ -5540,13 +5497,11 @@ void CanvasItemEditorPlugin::make_visible(bool p_visible) {
 		canvas_item_editor->show();
 		canvas_item_editor->set_physics_process(true);
 		RenderingServer::get_singleton()->viewport_set_disable_2d(EditorNode::get_singleton()->get_scene_root()->get_viewport_rid(), false);
-		RenderingServer::get_singleton()->viewport_set_environment_mode(EditorNode::get_singleton()->get_scene_root()->get_viewport_rid(), RS::VIEWPORT_ENVIRONMENT_ENABLED);
 
 	} else {
 		canvas_item_editor->hide();
 		canvas_item_editor->set_physics_process(false);
 		RenderingServer::get_singleton()->viewport_set_disable_2d(EditorNode::get_singleton()->get_scene_root()->get_viewport_rid(), true);
-		RenderingServer::get_singleton()->viewport_set_environment_mode(EditorNode::get_singleton()->get_scene_root()->get_viewport_rid(), RS::VIEWPORT_ENVIRONMENT_DISABLED);
 	}
 }
 
@@ -6009,6 +5964,7 @@ CanvasItemEditorViewport::CanvasItemEditorViewport(CanvasItemEditor *p_canvas_it
 	target_node = nullptr;
 	canvas_item_editor = p_canvas_item_editor;
 	preview_node = memnew(Control);
+	preview_node->set_process_mode(Node::PROCESS_MODE_DISABLED);
 
 	accept = memnew(AcceptDialog);
 	EditorNode::get_singleton()->get_gui_base()->add_child(accept);

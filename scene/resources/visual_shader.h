@@ -54,8 +54,6 @@ public:
 		TYPE_COLLIDE,
 		TYPE_START_CUSTOM,
 		TYPE_PROCESS_CUSTOM,
-		TYPE_SKY,
-		TYPE_FOG,
 		TYPE_MAX
 	};
 
@@ -131,7 +129,7 @@ private:
 		List<Connection> connections;
 	} graph[TYPE_MAX];
 
-	Shader::Mode shader_mode = Shader::MODE_SPATIAL;
+	Shader::Mode shader_mode = Shader::MODE_CANVAS_ITEM;
 	mutable String previous_code;
 
 	TypedArray<Dictionary> _get_node_connections(Type p_type) const;

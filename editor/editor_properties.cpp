@@ -49,8 +49,6 @@
 #include "editor/property_selector.h"
 #include "editor/scene_tree_dock.h"
 #include "scene/2d/gpu_particles_2d.h"
-#include "scene/3d/fog_volume.h"
-#include "scene/3d/gpu_particles_3d.h"
 #include "scene/gui/color_picker.h"
 #include "scene/main/window.h"
 #include "scene/resources/font.h"
@@ -80,7 +78,6 @@ void EditorPropertyText::_text_submitted(const String &p_string) {
 	}
 
 	if (text->has_focus()) {
-		text->release_focus();
 		_text_changed(p_string);
 	}
 }
@@ -268,7 +265,7 @@ void EditorPropertyTextEnum::_option_selected(int p_which) {
 void EditorPropertyTextEnum::_edit_custom_value() {
 	default_layout->hide();
 	edit_custom_layout->show();
-	custom_value_edit->grab_focus();
+	custom_value_edit->edit();
 }
 
 void EditorPropertyTextEnum::_custom_value_submitted(String p_value) {
@@ -817,9 +814,8 @@ void EditorPropertyLayersGrid::_rename_pressed(int p_menu) {
 	String name = names[renamed_layer_index];
 	rename_dialog->set_title(vformat(TTR("Renaming layer %d:"), renamed_layer_index + 1));
 	rename_dialog_text->set_text(name);
-	rename_dialog_text->select(0, name.length());
 	rename_dialog->popup_centered(Size2(300, 80) * EDSCALE);
-	rename_dialog_text->grab_focus();
+	rename_dialog_text->edit(true);
 }
 
 void EditorPropertyLayersGrid::_rename_operation_confirm() {
@@ -1154,36 +1150,6 @@ void EditorPropertyLayers::setup(LayerType p_layer_type) {
 
 		case LAYER_PHYSICS_2D: {
 			basename = "layer_names/2d_physics";
-			layer_group_size = 4;
-			layer_count = 32;
-		} break;
-
-		case LAYER_NAVIGATION_2D: {
-			basename = "layer_names/2d_navigation";
-			layer_group_size = 4;
-			layer_count = 32;
-		} break;
-
-		case LAYER_RENDER_3D: {
-			basename = "layer_names/3d_render";
-			layer_group_size = 5;
-			layer_count = 20;
-		} break;
-
-		case LAYER_PHYSICS_3D: {
-			basename = "layer_names/3d_physics";
-			layer_group_size = 4;
-			layer_count = 32;
-		} break;
-
-		case LAYER_NAVIGATION_3D: {
-			basename = "layer_names/3d_navigation";
-			layer_group_size = 4;
-			layer_count = 32;
-		} break;
-
-		case LAYER_AVOIDANCE: {
-			basename = "layer_names/avoidance";
 			layer_group_size = 4;
 			layer_count = 32;
 		} break;
@@ -3312,16 +3278,10 @@ void EditorPropertyResource::_update_preferred_shader() {
 		const StringName &ed_property = parent_property->get_edited_property();
 
 		// Set preferred shader based on edited parent type.
-		if ((Object::cast_to<GPUParticles2D>(ed_object) || Object::cast_to<GPUParticles3D>(ed_object)) && ed_property == SNAME("process_material")) {
+		if (Object::cast_to<GPUParticles2D>(ed_object) && ed_property == SNAME("process_material")) {
 			shader_picker->set_preferred_mode(Shader::MODE_PARTICLES);
-		} else if (Object::cast_to<FogVolume>(ed_object)) {
-			shader_picker->set_preferred_mode(Shader::MODE_FOG);
 		} else if (Object::cast_to<CanvasItem>(ed_object)) {
 			shader_picker->set_preferred_mode(Shader::MODE_CANVAS_ITEM);
-		} else if (Object::cast_to<Node3D>(ed_object) || Object::cast_to<Mesh>(ed_object)) {
-			shader_picker->set_preferred_mode(Shader::MODE_SPATIAL);
-		} else if (Object::cast_to<Sky>(ed_object)) {
-			shader_picker->set_preferred_mode(Shader::MODE_SKY);
 		}
 	}
 }
@@ -3616,13 +3576,7 @@ EditorProperty *EditorInspectorDefaultPlugin::get_editor_for_property(Object *p_
 				editor->setup(options);
 				return editor;
 
-			} else if (p_hint == PROPERTY_HINT_LAYERS_2D_PHYSICS ||
-					p_hint == PROPERTY_HINT_LAYERS_2D_RENDER ||
-					p_hint == PROPERTY_HINT_LAYERS_2D_NAVIGATION ||
-					p_hint == PROPERTY_HINT_LAYERS_3D_PHYSICS ||
-					p_hint == PROPERTY_HINT_LAYERS_3D_RENDER ||
-					p_hint == PROPERTY_HINT_LAYERS_3D_NAVIGATION ||
-					p_hint == PROPERTY_HINT_LAYERS_AVOIDANCE) {
+			} else if (p_hint == PROPERTY_HINT_LAYERS_2D_PHYSICS || p_hint == PROPERTY_HINT_LAYERS_2D_RENDER) {
 				EditorPropertyLayers::LayerType lt = EditorPropertyLayers::LAYER_RENDER_2D;
 				switch (p_hint) {
 					case PROPERTY_HINT_LAYERS_2D_RENDER:
@@ -3630,21 +3584,6 @@ EditorProperty *EditorInspectorDefaultPlugin::get_editor_for_property(Object *p_
 						break;
 					case PROPERTY_HINT_LAYERS_2D_PHYSICS:
 						lt = EditorPropertyLayers::LAYER_PHYSICS_2D;
-						break;
-					case PROPERTY_HINT_LAYERS_2D_NAVIGATION:
-						lt = EditorPropertyLayers::LAYER_NAVIGATION_2D;
-						break;
-					case PROPERTY_HINT_LAYERS_3D_RENDER:
-						lt = EditorPropertyLayers::LAYER_RENDER_3D;
-						break;
-					case PROPERTY_HINT_LAYERS_3D_PHYSICS:
-						lt = EditorPropertyLayers::LAYER_PHYSICS_3D;
-						break;
-					case PROPERTY_HINT_LAYERS_3D_NAVIGATION:
-						lt = EditorPropertyLayers::LAYER_NAVIGATION_3D;
-						break;
-					case PROPERTY_HINT_LAYERS_AVOIDANCE:
-						lt = EditorPropertyLayers::LAYER_AVOIDANCE;
 						break;
 					default: {
 					} //compiler could be smarter here and realize this can't happen

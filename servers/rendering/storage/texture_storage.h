@@ -107,32 +107,9 @@ public:
 	virtual uint64_t texture_get_native_handle(RID p_texture, bool p_srgb = false) const = 0;
 
 	/* Decal API */
-	virtual RID decal_allocate() = 0;
-	virtual void decal_initialize(RID p_rid) = 0;
-	virtual void decal_free(RID p_rid) = 0;
-
-	virtual void decal_set_size(RID p_decal, const Vector3 &p_size) = 0;
-	virtual void decal_set_texture(RID p_decal, RS::DecalTexture p_type, RID p_texture) = 0;
-	virtual void decal_set_emission_energy(RID p_decal, float p_energy) = 0;
-	virtual void decal_set_albedo_mix(RID p_decal, float p_mix) = 0;
-	virtual void decal_set_modulate(RID p_decal, const Color &p_modulate) = 0;
-	virtual void decal_set_cull_mask(RID p_decal, uint32_t p_layers) = 0;
-	virtual void decal_set_distance_fade(RID p_decal, bool p_enabled, float p_begin, float p_length) = 0;
-	virtual void decal_set_fade(RID p_decal, float p_above, float p_below) = 0;
-	virtual void decal_set_normal_fade(RID p_decal, float p_fade) = 0;
-
-	virtual AABB decal_get_aabb(RID p_decal) const = 0;
-	virtual uint32_t decal_get_cull_mask(RID p_decal) const = 0;
 
 	virtual void texture_add_to_decal_atlas(RID p_texture, bool p_panorama_to_dp = false) = 0;
 	virtual void texture_remove_from_decal_atlas(RID p_texture, bool p_panorama_to_dp = false) = 0;
-
-	/* DECAL INSTANCE */
-
-	virtual RID decal_instance_create(RID p_decal) = 0;
-	virtual void decal_instance_free(RID p_decal_instance) = 0;
-	virtual void decal_instance_set_transform(RID p_decal_instance, const Transform3D &p_transform) = 0;
-	virtual void decal_instance_set_sorting_offset(RID p_decal_instance, float p_sorting_offset) = 0;
 
 	/* RENDER TARGET */
 
@@ -151,11 +128,6 @@ public:
 	virtual void render_target_set_as_unused(RID p_render_target) = 0;
 	virtual void render_target_set_msaa(RID p_render_target, RS::ViewportMSAA p_msaa) = 0;
 	virtual RS::ViewportMSAA render_target_get_msaa(RID p_render_target) const = 0;
-	virtual void render_target_set_msaa_needs_resolve(RID p_render_target, bool p_needs_resolve) = 0;
-	virtual bool render_target_get_msaa_needs_resolve(RID p_render_target) const = 0;
-	virtual void render_target_do_msaa_resolve(RID p_render_target) = 0;
-	virtual void render_target_set_use_hdr(RID p_render_target, bool p_use_hdr) = 0;
-	virtual bool render_target_is_using_hdr(RID p_render_target) const = 0;
 
 	virtual void render_target_request_clear(RID p_render_target, const Color &p_clear_color) = 0;
 	virtual bool render_target_is_clear_requested(RID p_render_target) = 0;
@@ -166,11 +138,6 @@ public:
 	virtual void render_target_set_sdf_size_and_scale(RID p_render_target, RS::ViewportSDFOversize p_size, RS::ViewportSDFScale p_scale) = 0;
 	virtual Rect2i render_target_get_sdf_rect(RID p_render_target) const = 0;
 	virtual void render_target_mark_sdf_enabled(RID p_render_target, bool p_enabled) = 0;
-
-	virtual void render_target_set_vrs_mode(RID p_render_target, RS::ViewportVRSMode p_mode) = 0;
-	virtual RS::ViewportVRSMode render_target_get_vrs_mode(RID p_render_target) const = 0;
-	virtual void render_target_set_vrs_texture(RID p_render_target, RID p_texture) = 0;
-	virtual RID render_target_get_vrs_texture(RID p_render_target) const = 0;
 
 	// override color, depth and velocity buffers (depth and velocity only for 3D)
 	virtual void render_target_set_override(RID p_render_target, RID p_color_texture, RID p_depth_texture, RID p_velocity_texture) = 0;

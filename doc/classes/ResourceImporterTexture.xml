@@ -1,26 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="ResourceImporterTexture" inherits="ResourceImporter" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
 	<brief_description>
-		Imports an image for use in 2D or 3D rendering.
 	</brief_description>
 	<description>
-		This importer imports [CompressedTexture2D] resources. If you need to process the image in scripts in a more convenient way, use [ResourceImporterImage] instead. See also [ResourceImporterLayeredTexture].
 	</description>
 	<tutorials>
-		<link title="Importing images">$DOCS_URL/tutorials/assets_pipeline/importing_images.html</link>
 	</tutorials>
 	<members>
 		<member name="compress/channel_pack" type="int" setter="" getter="" default="0">
 			Controls how color channels should be used in the imported texture.
 			[b]sRGB Friendly:[/b] Prevents the RG color format from being used, as it does not support sRGB color.
 			[b]Optimized:[/b] Allows the RG color format to be used if the texture does not use the blue channel. This reduces memory usage if the texture's blue channel can be discarded (all pixels must have a blue value of [code]0[/code]).
-		</member>
-		<member name="compress/hdr_compression" type="int" setter="" getter="" default="1">
-			Controls how VRAM compression should be performed for HDR images.
-			[b]Disabled:[/b] Never use VRAM compression for HDR textures, regardless of whether they're opaque or transparent. Instead, the texture is converted to RGBE9995 (9-bits per channel + 5-bit exponent = 32 bits per pixel) to reduce memory usage compared to a half-float or single-precision float image format.
-			[b]Opaque Only:[/b] Only uses VRAM compression for opaque HDR textures. This is due to a limitation of HDR formats, as there is no VRAM-compressed HDR format that supports transparency at the same time.
-			[b]Always:[/b] Force VRAM compression even for HDR textures with an alpha channel. To perform this, the alpha channel is discarded on import.
-			[b]Note:[/b] Only effective on Radiance HDR ([code].hdr[/code]) and OpenEXR ([code].exr[/code]) images.
 		</member>
 		<member name="compress/high_quality" type="bool" setter="" getter="" default="false">
 			If [code]true[/code], uses BPTC compression on desktop platforms and ASTC compression on mobile platforms. When using BPTC, BC7 is used for SDR textures and BC6H is used for HDR textures.

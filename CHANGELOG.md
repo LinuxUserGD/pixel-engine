@@ -18,13 +18,6 @@ branches, and linked at the [end of this file](#Past-releases).
 - Reset TileMap editor `drag_type` when the toolbar mode is not selected ([GH-86066](https://github.com/godotengine/godot/pull/86066)).
 - Editor: Fix threading problems with `TileMap` preview ([GH-87470](https://github.com/godotengine/godot/pull/87470)).
 
-#### 3D
-
-- Prompt require editor restart to user when gizmo color changed ([GH-82872](https://github.com/godotengine/godot/pull/82872)).
-- Improve Curve3D debug drawing ([GH-83698](https://github.com/godotengine/godot/pull/83698)).
-- Use screen-aligned quads for origin lines to avoid issues on NVidia ([GH-83895](https://github.com/godotengine/godot/pull/83895)).
-- Prevent division by 0 when creating vertices of a PrismMesh ([GH-86931](https://github.com/godotengine/godot/pull/86931)).
-
 #### Animation
 
 - Fix setting bezier track handle mode from inspector ([GH-83533](https://github.com/godotengine/godot/pull/83533)).

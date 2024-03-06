@@ -708,7 +708,7 @@ Vector<String> ProjectConverter3To4::check_for_files() {
 			String file_name = dir->_get_next();
 
 			while (file_name != "") {
-				if (file_name == ".git" || file_name == ".godot") {
+				if (file_name == ".git" || file_name == ".pixel") {
 					file_name = dir->_get_next();
 					continue;
 				}
@@ -716,7 +716,7 @@ Vector<String> ProjectConverter3To4::check_for_files() {
 					directories_to_check.append(current_dir.path_join(file_name) + "/");
 				} else {
 					bool proper_extension = false;
-					if (file_name.ends_with(".gd") || file_name.ends_with(".shader") || file_name.ends_with(".gdshader") || file_name.ends_with(".tscn") || file_name.ends_with(".tres") || file_name.ends_with(".godot") || file_name.ends_with(".cs") || file_name.ends_with(".csproj") || file_name.ends_with(".import"))
+					if (file_name.ends_with(".gd") || file_name.ends_with(".shader") || file_name.ends_with(".gdshader") || file_name.ends_with(".tscn") || file_name.ends_with(".tres") || file_name.ends_with(".pixel") || file_name.ends_with(".cs") || file_name.ends_with(".csproj") || file_name.ends_with(".import"))
 						proper_extension = true;
 
 					if (proper_extension) {
@@ -1044,108 +1044,107 @@ bool ProjectConverter3To4::test_conversion(RegExContainer &reg_container) {
 
 	// get_object_of_execution
 	{
-		String base = "var roman = kieliszek.";
-		String expected = "kieliszek.";
-		String got = get_object_of_execution(base);
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
+		{ String base = "var roman = kieliszek.";
+	String expected = "kieliszek.";
+	String got = get_object_of_execution(base);
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
 	}
-	{
-		String base = "r.";
-		String expected = "r.";
-		String got = get_object_of_execution(base);
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
+	valid = valid && (got == expected);
+}
+{
+	String base = "r.";
+	String expected = "r.";
+	String got = get_object_of_execution(base);
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
 	}
-	{
-		String base = "mortadela(";
-		String expected = "";
-		String got = get_object_of_execution(base);
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
+	valid = valid && (got == expected);
+}
+{
+	String base = "mortadela(";
+	String expected = "";
+	String got = get_object_of_execution(base);
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
 	}
-	{
-		String base = "var node = $world/ukraine/lviv.";
-		String expected = "$world/ukraine/lviv.";
-		String got = get_object_of_execution(base);
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
+	valid = valid && (got == expected);
+}
+{
+	String base = "var node = $world/ukraine/lviv.";
+	String expected = "$world/ukraine/lviv.";
+	String got = get_object_of_execution(base);
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
 	}
+	valid = valid && (got == expected);
+}
+}
+// get_starting_space
+{
+	String base = "\t\t\t var roman = kieliszek.";
+	String expected = "\t\t\t";
+	String got = get_starting_space(base);
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
+	}
+	valid = valid && (got == expected);
+}
+// Parse Arguments
+{
+	String line = "( )";
+	Vector<String> got_vector = parse_arguments(line);
+	String got = "";
+	String expected = "";
+	for (String &part : got_vector) {
+		got += part + "|||";
+	}
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
+	}
+	valid = valid && (got == expected);
+}
+{
+	String line = "(a , b , c)";
+	Vector<String> got_vector = parse_arguments(line);
+	String got = "";
+	String expected = "a|||b|||c|||";
+	for (String &part : got_vector) {
+		got += part + "|||";
+	}
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
+	}
+	valid = valid && (got == expected);
+}
+{
+	String line = "(a , \"b,\" , c)";
+	Vector<String> got_vector = parse_arguments(line);
+	String got = "";
+	String expected = "a|||\"b,\"|||c|||";
+	for (String &part : got_vector) {
+		got += part + "|||";
+	}
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
+	}
+	valid = valid && (got == expected);
+}
+{
+	String line = "(a , \"(,),,,,\" , c)";
+	Vector<String> got_vector = parse_arguments(line);
+	String got = "";
+	String expected = "a|||\"(,),,,,\"|||c|||";
+	for (String &part : got_vector) {
+		got += part + "|||";
+	}
+	if (got != expected) {
+		ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
+	}
+	valid = valid && (got == expected);
+}
 
-	// get_starting_space
-	{
-		String base = "\t\t\t var roman = kieliszek.";
-		String expected = "\t\t\t";
-		String got = get_starting_space(base);
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from get_object_of_execution. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", base, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
-	}
-
-	// Parse Arguments
-	{
-		String line = "( )";
-		Vector<String> got_vector = parse_arguments(line);
-		String got = "";
-		String expected = "";
-		for (String &part : got_vector) {
-			got += part + "|||";
-		}
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
-	}
-	{
-		String line = "(a , b , c)";
-		Vector<String> got_vector = parse_arguments(line);
-		String got = "";
-		String expected = "a|||b|||c|||";
-		for (String &part : got_vector) {
-			got += part + "|||";
-		}
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
-	}
-	{
-		String line = "(a , \"b,\" , c)";
-		Vector<String> got_vector = parse_arguments(line);
-		String got = "";
-		String expected = "a|||\"b,\"|||c|||";
-		for (String &part : got_vector) {
-			got += part + "|||";
-		}
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
-	}
-	{
-		String line = "(a , \"(,),,,,\" , c)";
-		Vector<String> got_vector = parse_arguments(line);
-		String got = "";
-		String expected = "a|||\"(,),,,,\"|||c|||";
-		for (String &part : got_vector) {
-			got += part + "|||";
-		}
-		if (got != expected) {
-			ERR_PRINT(vformat("Failed to get proper data from parse_arguments. \"%s\" should return \"%s\"(%d), got \"%s\"(%d), instead.", line, expected, expected.size(), got, got.size()));
-		}
-		valid = valid && (got == expected);
-	}
-
-	return valid;
+return valid;
 }
 
 // Validate in all arrays if names don't do cyclic renames "Node" -> "Node2D" | "Node2D" -> "2DNode"

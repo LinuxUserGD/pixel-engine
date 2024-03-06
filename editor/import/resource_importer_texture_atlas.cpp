@@ -40,7 +40,6 @@
 #include "scene/resources/atlas_texture.h"
 #include "scene/resources/image_texture.h"
 #include "scene/resources/mesh.h"
-#include "scene/resources/mesh_texture.h"
 
 String ResourceImporterTextureAtlas::get_importer_name() const {
 	return "texture_atlas";
@@ -341,60 +340,6 @@ Error ResourceImporterTextureAtlas::import_group_file(const String &p_group_file
 			}
 
 			texture = atlas_texture;
-		} else {
-			Ref<ArrayMesh> mesh;
-			mesh.instantiate();
-
-			for (int i = 0; i < pack_data.chart_pieces.size(); i++) {
-				const EditorAtlasPacker::Chart &chart = charts[pack_data.chart_pieces[i]];
-				Vector<Vector2> vertices;
-				Vector<int> indices;
-				Vector<Vector2> uvs;
-				int vc = chart.vertices.size();
-				int fc = chart.faces.size();
-				vertices.resize(vc);
-				uvs.resize(vc);
-				indices.resize(fc * 3);
-
-				{
-					Vector2 *vw = vertices.ptrw();
-					int *iw = indices.ptrw();
-					Vector2 *uvw = uvs.ptrw();
-
-					for (int j = 0; j < vc; j++) {
-						vw[j] = chart.vertices[j];
-						Vector2 uv = chart.vertices[j];
-						if (chart.transposed) {
-							SWAP(uv.x, uv.y);
-						}
-						uv += chart.final_offset;
-						uv /= new_atlas->get_size(); //normalize uv to 0-1 range
-						uvw[j] = uv;
-					}
-
-					for (int j = 0; j < fc; j++) {
-						iw[j * 3 + 0] = chart.faces[j].vertex[0];
-						iw[j * 3 + 1] = chart.faces[j].vertex[1];
-						iw[j * 3 + 2] = chart.faces[j].vertex[2];
-					}
-				}
-
-				Array arrays;
-				arrays.resize(Mesh::ARRAY_MAX);
-				arrays[Mesh::ARRAY_VERTEX] = vertices;
-				arrays[Mesh::ARRAY_TEX_UV] = uvs;
-				arrays[Mesh::ARRAY_INDEX] = indices;
-
-				mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
-			}
-
-			Ref<MeshTexture> mesh_texture;
-			mesh_texture.instantiate();
-			mesh_texture->set_base_texture(cache);
-			mesh_texture->set_image_size(pack_data.image->get_size());
-			mesh_texture->set_mesh(mesh);
-
-			texture = mesh_texture;
 		}
 
 		String save_path = p_base_paths[E.key] + ".res";

@@ -568,32 +568,8 @@ public:
 
 	/* DECAL API */
 
-	virtual RID decal_allocate() override;
-	virtual void decal_initialize(RID p_rid) override;
-	virtual void decal_free(RID p_rid) override{};
-
-	virtual void decal_set_size(RID p_decal, const Vector3 &p_size) override;
-	virtual void decal_set_texture(RID p_decal, RS::DecalTexture p_type, RID p_texture) override;
-	virtual void decal_set_emission_energy(RID p_decal, float p_energy) override;
-	virtual void decal_set_albedo_mix(RID p_decal, float p_mix) override;
-	virtual void decal_set_modulate(RID p_decal, const Color &p_modulate) override;
-	virtual void decal_set_cull_mask(RID p_decal, uint32_t p_layers) override;
-	virtual void decal_set_distance_fade(RID p_decal, bool p_enabled, float p_begin, float p_length) override;
-	virtual void decal_set_fade(RID p_decal, float p_above, float p_below) override;
-	virtual void decal_set_normal_fade(RID p_decal, float p_fade) override;
-
-	virtual AABB decal_get_aabb(RID p_decal) const override;
-	virtual uint32_t decal_get_cull_mask(RID p_decal) const override { return 0; }
-
 	virtual void texture_add_to_decal_atlas(RID p_texture, bool p_panorama_to_dp = false) override {}
 	virtual void texture_remove_from_decal_atlas(RID p_texture, bool p_panorama_to_dp = false) override {}
-
-	/* DECAL INSTANCE */
-
-	virtual RID decal_instance_create(RID p_decal) override { return RID(); }
-	virtual void decal_instance_free(RID p_decal_instance) override {}
-	virtual void decal_instance_set_transform(RID p_decal, const Transform3D &p_transform) override {}
-	virtual void decal_instance_set_sorting_offset(RID p_decal_instance, float p_sorting_offset) override {}
 
 	/* RENDER TARGET API */
 
@@ -619,11 +595,6 @@ public:
 	void render_target_clear_used(RID p_render_target);
 	virtual void render_target_set_msaa(RID p_render_target, RS::ViewportMSAA p_msaa) override;
 	virtual RS::ViewportMSAA render_target_get_msaa(RID p_render_target) const override;
-	virtual void render_target_set_msaa_needs_resolve(RID p_render_target, bool p_needs_resolve) override {}
-	virtual bool render_target_get_msaa_needs_resolve(RID p_render_target) const override { return false; }
-	virtual void render_target_do_msaa_resolve(RID p_render_target) override {}
-	virtual void render_target_set_use_hdr(RID p_render_target, bool p_use_hdr_2d) override {}
-	virtual bool render_target_is_using_hdr(RID p_render_target) const override { return false; }
 
 	// new
 	void render_target_set_as_unused(RID p_render_target) override {
@@ -647,11 +618,6 @@ public:
 	void render_target_copy_to_back_buffer(RID p_render_target, const Rect2i &p_region, bool p_gen_mipmaps);
 	void render_target_clear_back_buffer(RID p_render_target, const Rect2i &p_region, const Color &p_color);
 	void render_target_gen_back_buffer_mipmaps(RID p_render_target, const Rect2i &p_region);
-
-	virtual void render_target_set_vrs_mode(RID p_render_target, RS::ViewportVRSMode p_mode) override {}
-	virtual RS::ViewportVRSMode render_target_get_vrs_mode(RID p_render_target) const override { return RS::VIEWPORT_VRS_DISABLED; }
-	virtual void render_target_set_vrs_texture(RID p_render_target, RID p_texture) override {}
-	virtual RID render_target_get_vrs_texture(RID p_render_target) const override { return RID(); }
 
 	virtual void render_target_set_override(RID p_render_target, RID p_color_texture, RID p_depth_texture, RID p_velocity_texture) override;
 	virtual RID render_target_get_override_color(RID p_render_target) const override;

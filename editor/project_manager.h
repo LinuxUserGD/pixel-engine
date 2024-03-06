@@ -115,7 +115,6 @@ private:
 
 	void _text_changed(const String &p_text);
 	void _nonempty_confirmation_ok_pressed();
-	void _renderer_selected();
 	void _remove_created_folder();
 
 	void ok_pressed() override;

@@ -31,9 +31,7 @@
 #ifndef ANIMATION_MIXER_H
 #define ANIMATION_MIXER_H
 
-#include "scene/3d/mesh_instance_3d.h"
-#include "scene/3d/node_3d.h"
-#include "scene/3d/skeleton_3d.h"
+#include "scene/main/node.h"
 #include "scene/resources/animation.h"
 #include "scene/resources/animation_library.h"
 #include "scene/resources/audio_stream_polyphonic.h"
@@ -155,10 +153,6 @@ protected:
 	};
 
 	struct TrackCacheTransform : public TrackCache {
-#ifndef _3D_DISABLED
-		Node3D *node_3d = nullptr;
-		Skeleton3D *skeleton = nullptr;
-#endif // _3D_DISABLED
 		int bone_idx = -1;
 		bool loc_used = false;
 		bool rot_used = false;
@@ -172,10 +166,6 @@ protected:
 
 		TrackCacheTransform(const TrackCacheTransform &p_other) :
 				TrackCache(p_other),
-#ifndef _3D_DISABLED
-				node_3d(p_other.node_3d),
-				skeleton(p_other.skeleton),
-#endif
 				bone_idx(p_other.bone_idx),
 				loc_used(p_other.loc_used),
 				rot_used(p_other.rot_used),
@@ -201,14 +191,12 @@ protected:
 	};
 
 	struct TrackCacheBlendShape : public TrackCache {
-		MeshInstance3D *mesh_3d = nullptr;
 		float init_value = 0;
 		float value = 0;
 		int shape_index = -1;
 
 		TrackCacheBlendShape(const TrackCacheBlendShape &p_other) :
 				TrackCache(p_other),
-				mesh_3d(p_other.mesh_3d),
 				init_value(p_other.init_value),
 				value(p_other.value),
 				shape_index(p_other.shape_index) {}

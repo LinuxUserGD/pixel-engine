@@ -84,14 +84,6 @@ struct Mesh {
 		uint32_t index_count = 0;
 		uint32_t index_buffer_size = 0;
 
-		struct Wireframe {
-			GLuint index_buffer = 0;
-			uint32_t index_count = 0;
-			uint32_t index_buffer_size = 0;
-		};
-
-		Wireframe *wireframe = nullptr;
-
 		struct LOD {
 			float edge_length = 0.0;
 			uint32_t index_count = 0;
@@ -105,10 +97,6 @@ struct Mesh {
 		AABB aabb;
 
 		Vector<AABB> bone_aabbs;
-
-		// Transform used in runtime bone AABBs compute.
-		// As bone AABBs are saved in Mesh space, but bones animation is in Skeleton space.
-		Transform3D mesh_to_skeleton_xform;
 
 		Vector4 uv_scale;
 
@@ -393,16 +381,6 @@ public:
 		}
 	}
 
-	_FORCE_INLINE_ GLuint mesh_surface_get_index_buffer_wireframe(void *p_surface) const {
-		Mesh::Surface *s = reinterpret_cast<Mesh::Surface *>(p_surface);
-
-		if (s->wireframe) {
-			return s->wireframe->index_buffer;
-		}
-
-		return 0;
-	}
-
 	_FORCE_INLINE_ GLenum mesh_surface_get_index_type(void *p_surface) const {
 		Mesh::Surface *s = reinterpret_cast<Mesh::Surface *>(p_surface);
 
@@ -574,8 +552,6 @@ public:
 	virtual void skeleton_allocate_data(RID p_skeleton, int p_bones, bool p_2d_skeleton = false) override;
 	virtual void skeleton_set_base_transform_2d(RID p_skeleton, const Transform2D &p_base_transform) override;
 	virtual int skeleton_get_bone_count(RID p_skeleton) const override;
-	virtual void skeleton_bone_set_transform(RID p_skeleton, int p_bone, const Transform3D &p_transform) override;
-	virtual Transform3D skeleton_bone_get_transform(RID p_skeleton, int p_bone) const override;
 	virtual void skeleton_bone_set_transform_2d(RID p_skeleton, int p_bone, const Transform2D &p_transform) override;
 	virtual Transform2D skeleton_bone_get_transform_2d(RID p_skeleton, int p_bone) const override;
 

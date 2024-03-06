@@ -109,9 +109,6 @@ struct CellData {
 	// Physics.
 	LocalVector<RID> bodies;
 
-	// Navigation.
-	LocalVector<RID> navigation_regions;
-
 	// Scenes.
 	String scene;
 
@@ -131,7 +128,6 @@ struct CellData {
 		cell = p_other.cell;
 		occluders = p_other.occluders;
 		bodies = p_other.bodies;
-		navigation_regions = p_other.navigation_regions;
 		scene = p_other.scene;
 		runtime_tile_data_cache = p_other.runtime_tile_data_cache;
 	}
@@ -144,7 +140,6 @@ struct CellData {
 		cell = p_other.cell;
 		occluders = p_other.occluders;
 		bodies = p_other.bodies;
-		navigation_regions = p_other.navigation_regions;
 		scene = p_other.scene;
 		runtime_tile_data_cache = p_other.runtime_tile_data_cache;
 	}
@@ -248,7 +243,6 @@ public:
 		DIRTY_FLAGS_LAYER_Y_SORT_ENABLED,
 		DIRTY_FLAGS_LAYER_Y_SORT_ORIGIN,
 		DIRTY_FLAGS_LAYER_Z_INDEX,
-		DIRTY_FLAGS_LAYER_NAVIGATION_ENABLED,
 		DIRTY_FLAGS_LAYER_INDEX_IN_TILE_MAP_NODE,
 		DIRTY_FLAGS_TILE_MAP_IN_TREE,
 		DIRTY_FLAGS_TILE_MAP_IN_CANVAS,
@@ -265,7 +259,6 @@ public:
 		DIRTY_FLAGS_TILE_MAP_QUADRANT_SIZE,
 		DIRTY_FLAGS_TILE_MAP_COLLISION_ANIMATABLE,
 		DIRTY_FLAGS_TILE_MAP_COLLISION_VISIBILITY_MODE,
-		DIRTY_FLAGS_TILE_MAP_NAVIGATION_VISIBILITY_MODE,
 		DIRTY_FLAGS_TILE_MAP_Y_SORT_ENABLED,
 		DIRTY_FLAGS_TILE_MAP_RUNTIME_UPDATE,
 		DIRTY_FLAGS_MAX,
@@ -279,9 +272,6 @@ private:
 	bool y_sort_enabled = false;
 	int y_sort_origin = 0;
 	int z_index = 0;
-	bool navigation_enabled = true;
-	RID navigation_map;
-	bool uses_world_navigation_map = false;
 
 	// Internal.
 	TileMap *tile_map_node = nullptr;
@@ -335,14 +325,6 @@ private:
 	void _physics_update_cell(CellData &r_cell_data);
 #ifdef DEBUG_ENABLED
 	void _physics_draw_cell_debug(const RID &p_canvas_item, const Vector2i &p_quadrant_pos, const CellData &r_cell_data);
-#endif // DEBUG_ENABLED
-
-	bool _navigation_was_cleaned_up = false;
-	void _navigation_update();
-	void _navigation_clear_cell(CellData &r_cell_data);
-	void _navigation_update_cell(CellData &r_cell_data);
-#ifdef DEBUG_ENABLED
-	void _navigation_draw_cell_debug(const RID &p_canvas_item, const Vector2i &p_quadrant_pos, const CellData &r_cell_data);
 #endif // DEBUG_ENABLED
 
 	bool _scenes_was_cleaned_up = false;
@@ -419,10 +401,6 @@ public:
 	int get_y_sort_origin() const;
 	void set_z_index(int p_z_index);
 	int get_z_index() const;
-	void set_navigation_enabled(bool p_enabled);
-	bool is_navigation_enabled() const;
-	void set_navigation_map(RID p_map);
-	RID get_navigation_map() const;
 
 	// Fixing and clearing methods.
 	void fix_invalid_tiles();
@@ -457,7 +435,6 @@ private:
 	int rendering_quadrant_size = 16;
 	bool collision_animatable = false;
 	VisibilityMode collision_visibility_mode = VISIBILITY_MODE_DEFAULT;
-	VisibilityMode navigation_visibility_mode = VISIBILITY_MODE_DEFAULT;
 
 	// Layers.
 	LocalVector<Ref<TileMapLayer>> layers;
@@ -535,11 +512,6 @@ public:
 	int get_layer_y_sort_origin(int p_layer) const;
 	void set_layer_z_index(int p_layer, int p_z_index);
 	int get_layer_z_index(int p_layer) const;
-	void set_layer_navigation_enabled(int p_layer, bool p_enabled);
-	bool is_layer_navigation_enabled(int p_layer) const;
-	void set_layer_navigation_map(int p_layer, RID p_map);
-	RID get_layer_navigation_map(int p_layer) const;
-
 	void set_selected_layer(int p_layer_id); // For editor use.
 	int get_selected_layer() const;
 
@@ -549,9 +521,6 @@ public:
 	// Debug visibility modes.
 	void set_collision_visibility_mode(VisibilityMode p_show_collision);
 	VisibilityMode get_collision_visibility_mode();
-
-	void set_navigation_visibility_mode(VisibilityMode p_show_navigation);
-	VisibilityMode get_navigation_visibility_mode();
 
 	// Cells accessors.
 	void set_cell(int p_layer, const Vector2i &p_coords, int p_source_id = TileSet::INVALID_SOURCE, const Vector2i p_atlas_coords = TileSetSource::INVALID_ATLAS_COORDS, int p_alternative_tile = 0);

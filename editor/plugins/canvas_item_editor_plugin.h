@@ -50,6 +50,8 @@ class ViewPanner;
 class VScrollBar;
 class VSeparator;
 class VSplitContainer;
+class OptionButton;
+class PopupMenu;
 
 class CanvasItemEditorSelectedItem : public Object {
 	GDCLASS(CanvasItemEditorSelectedItem, Object);
@@ -78,10 +80,10 @@ class CanvasItemEditor : public VBoxContainer {
 public:
 	enum Tool {
 		TOOL_SELECT,
-		TOOL_LIST_SELECT,
 		TOOL_MOVE,
-		TOOL_SCALE,
 		TOOL_ROTATE,
+		TOOL_SCALE,
+		TOOL_LIST_SELECT,
 		TOOL_EDIT_PIVOT,
 		TOOL_PAN,
 		TOOL_RULER,
@@ -303,17 +305,8 @@ private:
 	};
 	List<PoseClipboard> pose_clipboard;
 
-	Button *select_button = nullptr;
-
-	Button *move_button = nullptr;
-	Button *scale_button = nullptr;
-	Button *rotate_button = nullptr;
-
-	Button *list_select_button = nullptr;
-	Button *pivot_button = nullptr;
-	Button *pan_button = nullptr;
-
-	Button *ruler_button = nullptr;
+	OptionButton *select_options = nullptr;
+	PopupMenu *select_popup = nullptr;
 
 	Button *smart_snap_button = nullptr;
 	Button *grid_snap_button = nullptr;

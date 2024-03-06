@@ -69,17 +69,11 @@
 #include "servers/display_server.h"
 #include "servers/movie_writer/movie_writer.h"
 #include "servers/movie_writer/movie_writer_mjpeg.h"
-#include "servers/navigation_server_2d.h"
-#include "servers/navigation_server_2d_dummy.h"
-#include "servers/navigation_server_3d.h"
-#include "servers/navigation_server_3d_dummy.h"
 #include "servers/physics_server_2d.h"
-#include "servers/physics_server_3d.h"
 #include "servers/register_server_types.h"
 #include "servers/rendering/rendering_server_default.h"
 #include "servers/text/text_server_dummy.h"
 #include "servers/text_server.h"
-#include "servers/xr_server.h"
 
 #ifdef TESTS_ENABLED
 #include "tests/test_main.h"
@@ -143,14 +137,9 @@ static AudioServer *audio_server = nullptr;
 static DisplayServer *display_server = nullptr;
 static RenderingServer *rendering_server = nullptr;
 static CameraServer *camera_server = nullptr;
-static XRServer *xr_server = nullptr;
 static TextServerManager *tsman = nullptr;
-static PhysicsServer3DManager *physics_server_3d_manager = nullptr;
-static PhysicsServer3D *physics_server_3d = nullptr;
 static PhysicsServer2DManager *physics_server_2d_manager = nullptr;
 static PhysicsServer2D *physics_server_2d = nullptr;
-static NavigationServer3D *navigation_server_3d = nullptr;
-static NavigationServer2D *navigation_server_2d = nullptr;
 static ThemeDB *theme_db = nullptr;
 // We error out if setup2() doesn't turn this true
 static bool _start_success = false;
@@ -159,8 +148,8 @@ static bool _start_success = false;
 
 String tablet_driver = "";
 String text_driver = "";
-String rendering_driver = "";
-String rendering_method = "";
+String rendering_driver = "opengl3";
+String rendering_method = "gl_compatibility";
 static int text_driver_idx = -1;
 static int display_driver_idx = -1;
 static int audio_driver_idx = -1;
@@ -211,8 +200,6 @@ static bool use_debug_profiler = false;
 #ifdef DEBUG_ENABLED
 static bool debug_collisions = false;
 static bool debug_paths = false;
-static bool debug_navigation = false;
-static bool debug_avoidance = false;
 static bool debug_canvas_item_redraw = false;
 #endif
 static int max_fps = -1;
@@ -288,16 +275,6 @@ static Vector<String> get_files_with_extension(const String &p_root, const Strin
 
 // FIXME: Could maybe be moved to have less code in main.cpp.
 void initialize_physics() {
-	/// 3D Physics Server
-	physics_server_3d = PhysicsServer3DManager::get_singleton()->new_server(
-			GLOBAL_GET(PhysicsServer3DManager::setting_property_name));
-	if (!physics_server_3d) {
-		// Physics server not found, Use the default physics
-		physics_server_3d = PhysicsServer3DManager::get_singleton()->new_default_server();
-	}
-	ERR_FAIL_NULL(physics_server_3d);
-	physics_server_3d->init();
-
 	// 2D Physics server
 	physics_server_2d = PhysicsServer2DManager::get_singleton()->new_server(
 			GLOBAL_GET(PhysicsServer2DManager::get_singleton()->setting_property_name));
@@ -310,9 +287,6 @@ void initialize_physics() {
 }
 
 void finalize_physics() {
-	physics_server_3d->finish();
-	memdelete(physics_server_3d);
-
 	physics_server_2d->finish();
 	memdelete(physics_server_2d);
 }
@@ -322,46 +296,6 @@ void finalize_display() {
 	memdelete(rendering_server);
 
 	memdelete(display_server);
-}
-
-void initialize_navigation_server() {
-	ERR_FAIL_COND(navigation_server_3d != nullptr);
-	ERR_FAIL_COND(navigation_server_2d != nullptr);
-
-	// Init 3D Navigation Server
-	navigation_server_3d = NavigationServer3DManager::new_default_server();
-
-	// Fall back to dummy if no default server has been registered.
-	if (!navigation_server_3d) {
-		WARN_PRINT_ONCE("No NavigationServer3D implementation has been registered! Falling back to a dummy implementation: navigation features will be unavailable.");
-		navigation_server_3d = memnew(NavigationServer3DDummy);
-	}
-
-	// Should be impossible, but make sure it's not null.
-	ERR_FAIL_NULL_MSG(navigation_server_3d, "Failed to initialize NavigationServer3D.");
-	navigation_server_3d->init();
-
-	// Init 2D Navigation Server
-	navigation_server_2d = NavigationServer2DManager::new_default_server();
-	if (!navigation_server_2d) {
-		WARN_PRINT_ONCE("No NavigationServer2D implementation has been registered! Falling back to a dummy implementation: navigation features will be unavailable.");
-		navigation_server_2d = memnew(NavigationServer2DDummy);
-	}
-
-	ERR_FAIL_NULL_MSG(navigation_server_2d, "Failed to initialize NavigationServer2D.");
-	navigation_server_2d->init();
-}
-
-void finalize_navigation_server() {
-	ERR_FAIL_NULL(navigation_server_3d);
-	navigation_server_3d->finish();
-	memdelete(navigation_server_3d);
-	navigation_server_3d = nullptr;
-
-	ERR_FAIL_NULL(navigation_server_2d);
-	navigation_server_2d->finish();
-	memdelete(navigation_server_2d);
-	navigation_server_2d = nullptr;
 }
 
 void initialize_theme_db() {
@@ -466,7 +400,6 @@ void Main::print_help(const char *p_binary) {
 	OS::get_singleton()->print("  --position <X>,<Y>                Request window position (if set, screen argument is ignored).\n");
 	OS::get_singleton()->print("  --screen <N>                      Request window screen.\n");
 	OS::get_singleton()->print("  --single-window                   Use a single window (no separate subwindows).\n");
-	OS::get_singleton()->print("  --xr-mode <mode>                  Select XR (Extended Reality) mode ['default', 'off', 'on'].\n");
 	OS::get_singleton()->print("\n");
 
 	OS::get_singleton()->print("Debug options:\n");
@@ -484,8 +417,6 @@ void Main::print_help(const char *p_binary) {
 #if defined(DEBUG_ENABLED)
 	OS::get_singleton()->print("  --debug-collisions                Show collision shapes when running the scene.\n");
 	OS::get_singleton()->print("  --debug-paths                     Show path lines when running the scene.\n");
-	OS::get_singleton()->print("  --debug-navigation                Show navigation polygons when running the scene.\n");
-	OS::get_singleton()->print("  --debug-avoidance                 Show navigation avoidance debug visuals when running the scene.\n");
 	OS::get_singleton()->print("  --debug-stringnames               Print all StringName allocations to stdout when the engine quits.\n");
 	OS::get_singleton()->print("  --debug-canvas-item-redraw        Display a rectangle each time a canvas item requests a redraw (useful to troubleshoot low processor mode).\n");
 #endif
@@ -564,7 +495,6 @@ Error Main::test_setup() {
 		tsman->add_interface(ts);
 	}
 
-	physics_server_3d_manager = memnew(PhysicsServer3DManager);
 	physics_server_2d_manager = memnew(PhysicsServer2DManager);
 
 	// From `Main::setup2()`.
@@ -575,7 +505,6 @@ Error Main::test_setup() {
 
 	/** INITIALIZE SERVERS **/
 	register_server_types();
-	XRServer::set_xr_mode(XRServer::XRMODE_OFF); // Skip in tests.
 	initialize_modules(MODULE_INITIALIZATION_LEVEL_SERVERS);
 	GDExtensionManager::get_singleton()->initialize_extensions(GDExtension::INITIALIZATION_LEVEL_SERVERS);
 
@@ -613,8 +542,6 @@ Error Main::test_setup() {
 
 	// Theme needs modules to be initialized so that sub-resources can be loaded.
 	theme_db->initialize_theme_noproject();
-
-	initialize_navigation_server();
 
 	ERR_FAIL_COND_V(TextServerManager::get_singleton()->get_interface_count() == 0, ERR_CANT_CREATE);
 
@@ -674,8 +601,6 @@ void Main::test_cleanup() {
 
 	finalize_theme_db();
 
-	finalize_navigation_server();
-
 	GDExtensionManager::get_singleton()->deinitialize_extensions(GDExtension::INITIALIZATION_LEVEL_SERVERS);
 	uninitialize_modules(MODULE_INITIALIZATION_LEVEL_SERVERS);
 	unregister_server_types();
@@ -691,9 +616,6 @@ void Main::test_cleanup() {
 	}
 	if (tsman) {
 		memdelete(tsman);
-	}
-	if (physics_server_3d_manager) {
-		memdelete(physics_server_3d_manager);
 	}
 	if (physics_server_2d_manager) {
 		memdelete(physics_server_2d_manager);
@@ -837,8 +759,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	bool force_res = false;
 	bool delta_smoothing_override = false;
 
-	String default_renderer = "";
-	String default_renderer_mobile = "";
+	String default_renderer = "gl_compatibility";
+	String default_renderer_mobile = "gl_compatibility";
 	String renderer_hints = "";
 
 	packed_data = PackedData::get_singleton();
@@ -1453,10 +1375,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			debug_collisions = true;
 		} else if (I->get() == "--debug-paths") {
 			debug_paths = true;
-		} else if (I->get() == "--debug-navigation") {
-			debug_navigation = true;
-		} else if (I->get() == "--debug-avoidance") {
-			debug_avoidance = true;
 		} else if (I->get() == "--debug-canvas-item-redraw") {
 			debug_canvas_item_redraw = true;
 		} else if (I->get() == "--debug-stringnames") {
@@ -1515,25 +1433,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			OS::get_singleton()->disable_crash_handler();
 		} else if (I->get() == "--skip-breakpoints") {
 			skip_breakpoints = true;
-		} else if (I->get() == "--xr-mode") {
-			if (I->next()) {
-				String xr_mode = I->next()->get().to_lower();
-				N = I->next()->next();
-				if (xr_mode == "default") {
-					XRServer::set_xr_mode(XRServer::XRMODE_DEFAULT);
-				} else if (xr_mode == "off") {
-					XRServer::set_xr_mode(XRServer::XRMODE_OFF);
-				} else if (xr_mode == "on") {
-					XRServer::set_xr_mode(XRServer::XRMODE_ON);
-				} else {
-					OS::get_singleton()->print("Unknown --xr-mode argument \"%s\", aborting.\n", xr_mode.ascii().get_data());
-					goto error;
-				}
-			} else {
-				OS::get_singleton()->print("Missing --xr-mode argument, aborting.\n");
-				goto error;
-			}
-
 		} else if (I->get() == "--benchmark") {
 			OS::get_singleton()->set_use_benchmark(true);
 		} else if (I->get() == "--benchmark-file") {
@@ -1731,12 +1630,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	OS::get_singleton()->set_cmdline(execpath, main_args, user_args);
 
 	{
-		String driver_hints = "";
-#ifdef VULKAN_ENABLED
-		driver_hints = "vulkan";
-#endif
+		String driver_hints = "opengl3";
 
-		String default_driver = driver_hints.get_slice(",", 0);
+		String default_driver = driver_hints;
 
 		// For now everything defaults to vulkan when available. This can change in future updates.
 		GLOBAL_DEF_RST_NOVAL("rendering/rendering_device/driver", default_driver);
@@ -1831,10 +1727,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	}
 
 	// Start with RenderingDevice-based backends. Should be included if any RD driver present.
-#ifdef VULKAN_ENABLED
-	renderer_hints = "forward_plus,mobile";
-	default_renderer_mobile = "mobile";
-#endif
 
 	// And Compatibility next, or first if Vulkan is disabled.
 #ifdef GLES3_ENABLED
@@ -1856,13 +1748,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		ERR_PRINT("No renderers available.");
 	}
 
-	if (!rendering_method.is_empty()) {
-		if (rendering_method != "forward_plus" &&
-				rendering_method != "mobile" &&
-				rendering_method != "gl_compatibility") {
-			OS::get_singleton()->print("Unknown renderer name '%s', aborting. Valid options are: %s\n", rendering_method.utf8().get_data(), renderer_hints.utf8().get_data());
-			goto error;
-		}
+	if (rendering_method != "gl_compatibility") {
+		OS::get_singleton()->print("Unknown renderer name '%s'.", rendering_method.utf8().get_data());
+		goto error;
 	}
 
 	if (!rendering_driver.is_empty()) {
@@ -1903,19 +1791,12 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		if (rendering_method.is_empty()) {
 			if (rendering_driver == "opengl3" || rendering_driver == "opengl3_angle" || rendering_driver == "opengl3_es") {
 				rendering_method = "gl_compatibility";
-			} else {
-				rendering_method = "forward_plus";
 			}
 		}
 
 		// Now validate whether the selected driver matches with the renderer.
 		bool valid_combination = false;
 		Vector<String> available_drivers;
-#ifdef VULKAN_ENABLED
-		if (rendering_method == "forward_plus" || rendering_method == "mobile") {
-			available_drivers.push_back("vulkan");
-		}
-#endif
 #ifdef GLES3_ENABLED
 		if (rendering_method == "gl_compatibility") {
 			available_drivers.push_back("opengl3");
@@ -1948,8 +1829,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		}
 	}
 
-	default_renderer = renderer_hints.get_slice(",", 0);
-	GLOBAL_DEF_RST_BASIC(PropertyInfo(Variant::STRING, "rendering/renderer/rendering_method", PROPERTY_HINT_ENUM, renderer_hints), default_renderer);
+	default_renderer = "gl_compatibility";
+	GLOBAL_DEF_RST_BASIC(PropertyInfo(Variant::STRING, "rendering/renderer/rendering_method", PROPERTY_HINT_ENUM, "gl_compatibility"), default_renderer);
 	GLOBAL_DEF_RST_BASIC("rendering/renderer/rendering_method.mobile", default_renderer_mobile);
 	GLOBAL_DEF_RST_BASIC("rendering/renderer/rendering_method.web", "gl_compatibility"); // This is a bit of a hack until we have WebGPU support.
 
@@ -1961,8 +1842,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	if (rendering_driver.is_empty()) {
 		if (rendering_method == "gl_compatibility") {
 			rendering_driver = GLOBAL_GET("rendering/gl_compatibility/driver");
-		} else {
-			rendering_driver = GLOBAL_GET("rendering/rendering_device/driver");
 		}
 	}
 
@@ -2057,10 +1936,10 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		OS::get_singleton()->set_environment("DISABLE_VK_LAYER_reshade_1", "1"); // GH-70849.
 	} else {
 		// Re-allow using Vulkan overlays, disabled while using the editor.
-		OS::get_singleton()->unset_environment("DISABLE_MANGOHUD");
-		OS::get_singleton()->unset_environment("DISABLE_RTSS_LAYER");
-		OS::get_singleton()->unset_environment("DISABLE_VKBASALT");
-		OS::get_singleton()->unset_environment("DISABLE_VK_LAYER_reshade_1");
+		//OS::get_singleton()->unset_environment("DISABLE_MANGOHUD");
+		//OS::get_singleton()->unset_environment("DISABLE_RTSS_LAYER");
+		//OS::get_singleton()->unset_environment("DISABLE_VKBASALT");
+		//OS::get_singleton()->unset_environment("DISABLE_VK_LAYER_reshade_1");
 	}
 #endif
 
@@ -2183,31 +2062,6 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF("display/window/ios/hide_status_bar", true);
 	GLOBAL_DEF("display/window/ios/suppress_ui_gesture", true);
 
-	// XR project settings.
-	GLOBAL_DEF_RST_BASIC("xr/openxr/enabled", false);
-	GLOBAL_DEF_BASIC(PropertyInfo(Variant::STRING, "xr/openxr/default_action_map", PROPERTY_HINT_FILE, "*.tres"), "res://openxr_action_map.tres");
-	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "xr/openxr/form_factor", PROPERTY_HINT_ENUM, "Head Mounted,Handheld"), "0");
-	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "xr/openxr/view_configuration", PROPERTY_HINT_ENUM, "Mono,Stereo"), "1"); // "Mono,Stereo,Quad,Observer"
-	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "xr/openxr/reference_space", PROPERTY_HINT_ENUM, "Local,Stage"), "1");
-	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "xr/openxr/environment_blend_mode", PROPERTY_HINT_ENUM, "Opaque,Additive,Alpha"), "0");
-	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "xr/openxr/foveation_level", PROPERTY_HINT_ENUM, "Off,Low,Medium,High"), "0");
-	GLOBAL_DEF_BASIC("xr/openxr/foveation_dynamic", false);
-
-	GLOBAL_DEF_BASIC("xr/openxr/submit_depth_buffer", false);
-	GLOBAL_DEF_BASIC("xr/openxr/startup_alert", true);
-
-	// OpenXR project extensions settings.
-	GLOBAL_DEF_BASIC("xr/openxr/extensions/hand_tracking", true);
-	GLOBAL_DEF_BASIC("xr/openxr/extensions/eye_gaze_interaction", false);
-
-#ifdef TOOLS_ENABLED
-	// Disabled for now, using XR inside of the editor we'll be working on during the coming months.
-
-	// editor settings (it seems we're too early in the process when setting up rendering, to access editor settings...)
-	// EDITOR_DEF_RST("xr/openxr/in_editor", false);
-	// GLOBAL_DEF("xr/openxr/in_editor", false);
-#endif
-
 	Engine::get_singleton()->set_frame_delay(frame_delay);
 
 	message_queue = memnew(MessageQueue);
@@ -2317,7 +2171,6 @@ Error Main::setup2() {
 		tsman->add_interface(ts);
 	}
 
-	physics_server_3d_manager = memnew(PhysicsServer3DManager);
 	physics_server_2d_manager = memnew(PhysicsServer2DManager);
 
 	register_server_types();
@@ -2525,9 +2378,6 @@ Error Main::setup2() {
 	audio_server = memnew(AudioServer);
 	audio_server->init();
 
-	// also init our xr_server from here
-	xr_server = memnew(XRServer);
-
 	register_core_singletons();
 
 	MAIN_PRINT("Main: Setup Logo");
@@ -2551,7 +2401,7 @@ Error Main::setup2() {
 
 	MAIN_PRINT("Main: Load Boot Image");
 
-	Color clear = GLOBAL_DEF_BASIC("rendering/environment/defaults/default_clear_color", Color(0.3, 0.3, 0.3));
+	Color clear = GLOBAL_DEF_BASIC("rendering/environment/defaults/default_clear_color", Color(0.122, 0.114, 0.145));
 	RenderingServer::get_singleton()->set_default_clear_color(clear);
 
 	if (show_logo) { //boot logo!
@@ -2761,7 +2611,6 @@ Error Main::setup2() {
 	MAIN_PRINT("Main: Load Physics");
 
 	initialize_physics();
-	initialize_navigation_server();
 	register_server_singletons();
 
 	// This loads global classes, so it must happen before custom loaders and savers are registered
@@ -3169,17 +3018,6 @@ bool Main::start() {
 		if (debug_paths) {
 			sml->set_debug_paths_hint(true);
 		}
-		if (debug_navigation) {
-			sml->set_debug_navigation_hint(true);
-			NavigationServer3D::get_singleton()->set_debug_navigation_enabled(true);
-		}
-		if (debug_avoidance) {
-			NavigationServer3D::get_singleton()->set_debug_avoidance_enabled(true);
-		}
-		if (debug_navigation || debug_avoidance) {
-			NavigationServer3D::get_singleton()->set_active(true);
-			NavigationServer3D::get_singleton()->set_debug_enabled(true);
-		}
 		if (debug_canvas_item_redraw) {
 			RenderingServer::get_singleton()->canvas_item_set_debug_redraw(true);
 		}
@@ -3565,7 +3403,6 @@ bool Main::is_iterating() {
 // For performance metrics.
 static uint64_t physics_process_max = 0;
 static uint64_t process_max = 0;
-static uint64_t navigation_process_max = 0;
 
 bool Main::iteration() {
 	//for now do not error on this
@@ -3594,7 +3431,6 @@ bool Main::iteration() {
 
 	uint64_t physics_process_ticks = 0;
 	uint64_t process_ticks = 0;
-	uint64_t navigation_process_ticks = 0;
 
 	frame += ticks_elapsed;
 
@@ -3608,12 +3444,6 @@ bool Main::iteration() {
 
 	bool exit = false;
 
-	// process all our active interfaces
-	XRServer::get_singleton()->_process();
-
-	NavigationServer2D::get_singleton()->sync();
-	NavigationServer3D::get_singleton()->sync();
-
 	for (int iters = 0; iters < advance.physics_steps; ++iters) {
 		if (Input::get_singleton()->is_using_input_buffering() && agile_input_event_flushing) {
 			Input::get_singleton()->flush_buffered_events();
@@ -3623,31 +3453,17 @@ bool Main::iteration() {
 
 		uint64_t physics_begin = OS::get_singleton()->get_ticks_usec();
 
-		PhysicsServer3D::get_singleton()->sync();
-		PhysicsServer3D::get_singleton()->flush_queries();
-
 		PhysicsServer2D::get_singleton()->sync();
 		PhysicsServer2D::get_singleton()->flush_queries();
 
 		if (OS::get_singleton()->get_main_loop()->physics_process(physics_step * time_scale)) {
-			PhysicsServer3D::get_singleton()->end_sync();
 			PhysicsServer2D::get_singleton()->end_sync();
 
 			exit = true;
 			break;
 		}
 
-		uint64_t navigation_begin = OS::get_singleton()->get_ticks_usec();
-
-		NavigationServer3D::get_singleton()->process(physics_step * time_scale);
-
-		navigation_process_ticks = MAX(navigation_process_ticks, OS::get_singleton()->get_ticks_usec() - navigation_begin); // keep the largest one for reference
-		navigation_process_max = MAX(OS::get_singleton()->get_ticks_usec() - navigation_begin, navigation_process_max);
-
 		message_queue->flush();
-
-		PhysicsServer3D::get_singleton()->end_sync();
-		PhysicsServer3D::get_singleton()->step(physics_step * time_scale);
 
 		PhysicsServer2D::get_singleton()->end_sync();
 		PhysicsServer2D::get_singleton()->step(physics_step * time_scale);
@@ -3722,10 +3538,8 @@ bool Main::iteration() {
 		Engine::get_singleton()->_fps = frames;
 		performance->set_process_time(USEC_TO_SEC(process_max));
 		performance->set_physics_process_time(USEC_TO_SEC(physics_process_max));
-		performance->set_navigation_process_time(USEC_TO_SEC(navigation_process_max));
 		process_max = 0;
 		physics_process_max = 0;
-		navigation_process_max = 0;
 
 		frame %= 1000000;
 		frames = 0;
@@ -3822,12 +3636,6 @@ void Main::cleanup(bool p_force) {
 	//clear global shader variables before scene and other graphics stuff are deinitialized.
 	rendering_server->global_shader_parameters_clear();
 
-	if (xr_server) {
-		// Now that we're unregistering properly in plugins we need to keep access to xr_server for a little longer
-		// We do however unset our primary interface
-		xr_server->set_primary_interface(Ref<XRInterface>());
-	}
-
 #ifdef TOOLS_ENABLED
 	GDExtensionManager::get_singleton()->deinitialize_extensions(GDExtension::INITIALIZATION_LEVEL_EDITOR);
 	uninitialize_modules(MODULE_INITIALIZATION_LEVEL_EDITOR);
@@ -3847,7 +3655,6 @@ void Main::cleanup(bool p_force) {
 	finalize_theme_db();
 
 	// Before deinitializing server extensions, finalize servers which may be loaded as extensions.
-	finalize_navigation_server();
 	finalize_physics();
 
 	GDExtensionManager::get_singleton()->deinitialize_extensions(GDExtension::INITIALIZATION_LEVEL_SERVERS);
@@ -3855,10 +3662,6 @@ void Main::cleanup(bool p_force) {
 	unregister_server_types();
 
 	EngineDebugger::deinitialize();
-
-	if (xr_server) {
-		memdelete(xr_server);
-	}
 
 	if (audio_server) {
 		audio_server->finish();
@@ -3894,9 +3697,6 @@ void Main::cleanup(bool p_force) {
 	}
 	if (tsman) {
 		memdelete(tsman);
-	}
-	if (physics_server_3d_manager) {
-		memdelete(physics_server_3d_manager);
 	}
 	if (physics_server_2d_manager) {
 		memdelete(physics_server_2d_manager);

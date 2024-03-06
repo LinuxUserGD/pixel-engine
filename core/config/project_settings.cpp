@@ -95,11 +95,6 @@ const PackedStringArray ProjectSettings::_get_supported_features() {
 	features.append(VERSION_FULL_CONFIG);
 	features.append(VERSION_FULL_BUILD);
 
-#ifdef VULKAN_ENABLED
-	features.append("Forward Plus");
-	features.append("Mobile");
-#endif
-
 #ifdef GLES3_ENABLED
 	features.append("GL Compatibility");
 #endif
@@ -1342,7 +1337,6 @@ ProjectSettings::ProjectSettings() {
 	GLOBAL_DEF_BASIC(PropertyInfo(Variant::STRING, "audio/buses/default_bus_layout", PROPERTY_HINT_FILE, "*.tres"), "res://default_bus_layout.tres");
 	GLOBAL_DEF_RST("audio/general/text_to_speech", false);
 	GLOBAL_DEF_RST(PropertyInfo(Variant::FLOAT, "audio/general/2d_panning_strength", PROPERTY_HINT_RANGE, "0,2,0.01"), 0.5f);
-	GLOBAL_DEF_RST(PropertyInfo(Variant::FLOAT, "audio/general/3d_panning_strength", PROPERTY_HINT_RANGE, "0,2,0.01"), 0.5f);
 
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "audio/general/ios/session_category", PROPERTY_HINT_ENUM, "Ambient,Multi Route,Play and Record,Playback,Record,Solo Ambient"), 0);
 	GLOBAL_DEF("audio/general/ios/mix_with_others", false);
@@ -1365,7 +1359,6 @@ ProjectSettings::ProjectSettings() {
 	custom_prop_info["display/window/vsync/vsync_mode"] = PropertyInfo(Variant::INT, "display/window/vsync/vsync_mode", PROPERTY_HINT_ENUM, "Disabled,Enabled,Adaptive,Mailbox");
 	custom_prop_info["rendering/driver/threads/thread_model"] = PropertyInfo(Variant::INT, "rendering/driver/threads/thread_model", PROPERTY_HINT_ENUM, "Single-Unsafe,Single-Safe,Multi-Threaded");
 	GLOBAL_DEF("physics/2d/run_on_separate_thread", false);
-	GLOBAL_DEF("physics/3d/run_on_separate_thread", false);
 
 	GLOBAL_DEF_BASIC(PropertyInfo(Variant::STRING, "display/window/stretch/mode", PROPERTY_HINT_ENUM, "disabled,canvas_items,viewport"), "disabled");
 	GLOBAL_DEF_BASIC(PropertyInfo(Variant::STRING, "display/window/stretch/aspect", PROPERTY_HINT_ENUM, "ignore,keep,keep_width,keep_height,expand"), "keep");
@@ -1384,7 +1377,6 @@ ProjectSettings::ProjectSettings() {
 			String("Please include this when reporting the bug to the project developer."));
 	GLOBAL_DEF("debug/settings/crash_handler/message.editor",
 			String("Please include this when reporting the bug on: https://github.com/godotengine/godot/issues"));
-	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "rendering/occlusion_culling/bvh_build_quality", PROPERTY_HINT_ENUM, "Low,Medium,High"), 2);
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "memory/limits/multithreaded_server/rid_pool_prealloc", PROPERTY_HINT_RANGE, "0,500,1"), 60); // No negative and limit to 500 due to crashes.
 	GLOBAL_DEF_RST("internationalization/rendering/force_right_to_left_layout_direction", false);
 	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "internationalization/rendering/root_node_layout_direction", PROPERTY_HINT_ENUM, "Based on Locale,Left-to-Right,Right-to-Left"), 0);
@@ -1393,17 +1385,17 @@ ProjectSettings::ProjectSettings() {
 
 	GLOBAL_DEF_BASIC("gui/common/snap_controls_to_pixels", true);
 	GLOBAL_DEF_BASIC("gui/fonts/dynamic_fonts/use_oversampling", true);
+	GLOBAL_DEF_RST_BASIC(PropertyInfo(Variant::INT, "gui/fonts/dynamic_fonts/line_join", PROPERTY_HINT_ENUM, "Round,Bevel,Miter Variable,Miter Fixed"), 0);
+	GLOBAL_DEF_RST_BASIC(PropertyInfo(Variant::INT, "gui/fonts/dynamic_fonts/line_cap", PROPERTY_HINT_ENUM, "Butt,Round,Square"), 0);
+	GLOBAL_DEF_RST_BASIC(PropertyInfo(Variant::FLOAT, "gui/fonts/dynamic_fonts/miter_limit"), 0.0);
 
 	GLOBAL_DEF("rendering/rendering_device/staging_buffer/block_size_kb", 256);
 	GLOBAL_DEF("rendering/rendering_device/staging_buffer/max_size_mb", 128);
 	GLOBAL_DEF("rendering/rendering_device/staging_buffer/texture_upload_region_size_px", 64);
 	GLOBAL_DEF("rendering/rendering_device/pipeline_cache/save_chunk_size_mb", 3.0);
-	GLOBAL_DEF("rendering/rendering_device/vulkan/max_descriptors_per_pool", 64);
 
-	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "rendering/textures/canvas_textures/default_texture_filter", PROPERTY_HINT_ENUM, "Nearest,Linear,Linear Mipmap,Nearest Mipmap"), 1);
+	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "rendering/textures/canvas_textures/default_texture_filter", PROPERTY_HINT_ENUM, "Nearest,Linear,Linear Mipmap,Nearest Mipmap"), 0);
 	GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "rendering/textures/canvas_textures/default_texture_repeat", PROPERTY_HINT_ENUM, "Disable,Enable,Mirror"), 0);
-
-	GLOBAL_DEF("collada/use_ambient", false);
 
 	// These properties will not show up in the dialog. If you want to exclude whole groups, use add_hidden_prefix().
 	GLOBAL_DEF_INTERNAL("application/config/features", PackedStringArray());

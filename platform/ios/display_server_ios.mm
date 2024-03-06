@@ -62,39 +62,6 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 		tts = [[TTS_IOS alloc] init];
 	}
 
-#if defined(VULKAN_ENABLED)
-	context_vulkan = nullptr;
-	rendering_device_vulkan = nullptr;
-
-	if (rendering_driver == "vulkan") {
-		context_vulkan = memnew(VulkanContextIOS);
-		if (context_vulkan->initialize() != OK) {
-			memdelete(context_vulkan);
-			context_vulkan = nullptr;
-			ERR_FAIL_MSG("Failed to initialize Vulkan context");
-		}
-
-		CALayer *layer = [AppDelegate.viewController.godotView initializeRenderingForDriver:@"vulkan"];
-
-		if (!layer) {
-			ERR_FAIL_MSG("Failed to create iOS Vulkan rendering layer.");
-		}
-
-		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
-		if (context_vulkan->window_create(MAIN_WINDOW_ID, p_vsync_mode, layer, size.width, size.height) != OK) {
-			memdelete(context_vulkan);
-			context_vulkan = nullptr;
-			r_error = ERR_UNAVAILABLE;
-			ERR_FAIL_MSG("Failed to create Vulkan window.");
-		}
-
-		rendering_device_vulkan = memnew(RenderingDeviceVulkan);
-		rendering_device_vulkan->initialize(context_vulkan);
-
-		RendererCompositorRD::make_current();
-	}
-#endif
-
 #if defined(GLES3_ENABLED)
 	if (rendering_driver == "opengl3") {
 		CALayer *layer = [AppDelegate.viewController.godotView initializeRenderingForDriver:@"opengl3"];
@@ -116,19 +83,6 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 }
 
 DisplayServerIOS::~DisplayServerIOS() {
-#if defined(VULKAN_ENABLED)
-	if (rendering_device_vulkan) {
-		rendering_device_vulkan->finalize();
-		memdelete(rendering_device_vulkan);
-		rendering_device_vulkan = nullptr;
-	}
-
-	if (context_vulkan) {
-		context_vulkan->window_destroy(MAIN_WINDOW_ID);
-		memdelete(context_vulkan);
-		context_vulkan = nullptr;
-	}
-#endif
 }
 
 DisplayServer *DisplayServerIOS::create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
@@ -138,9 +92,6 @@ DisplayServer *DisplayServerIOS::create_func(const String &p_rendering_driver, W
 Vector<String> DisplayServerIOS::get_rendering_drivers_func() {
 	Vector<String> drivers;
 
-#if defined(VULKAN_ENABLED)
-	drivers.push_back("vulkan");
-#endif
 #if defined(GLES3_ENABLED)
 	drivers.push_back("opengl3");
 #endif
@@ -697,31 +648,15 @@ bool DisplayServerIOS::screen_is_kept_on() const {
 void DisplayServerIOS::resize_window(CGSize viewSize) {
 	Size2i size = Size2i(viewSize.width, viewSize.height) * screen_get_max_scale();
 
-#if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		context_vulkan->window_resize(MAIN_WINDOW_ID, size.x, size.y);
-	}
-#endif
-
 	Variant resize_rect = Rect2i(Point2i(), size);
 	_window_callback(window_resize_callback, resize_rect);
 }
 
 void DisplayServerIOS::window_set_vsync_mode(DisplayServer::VSyncMode p_vsync_mode, WindowID p_window) {
 	_THREAD_SAFE_METHOD_
-#if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		context_vulkan->set_vsync_mode(p_window, p_vsync_mode);
-	}
-#endif
 }
 
 DisplayServer::VSyncMode DisplayServerIOS::window_get_vsync_mode(WindowID p_window) const {
 	_THREAD_SAFE_METHOD_
-#if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		return context_vulkan->get_vsync_mode(p_window);
-	}
-#endif
 	return DisplayServer::VSYNC_ENABLED;
 }

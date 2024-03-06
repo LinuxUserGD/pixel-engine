@@ -45,6 +45,7 @@
 #include "scene/gui/check_button.h"
 #include "scene/gui/item_list.h"
 #include "scene/gui/link_button.h"
+#include "scene/gui/margin_container.h"
 #include "scene/gui/menu_button.h"
 #include "scene/gui/option_button.h"
 #include "scene/gui/popup_menu.h"
@@ -1159,6 +1160,7 @@ void ProjectExportDialog::_bind_methods() {
 ProjectExportDialog::ProjectExportDialog() {
 	set_title(TTR("Export"));
 	set_clamp_to_embedder(true);
+	set_min_size(Vector2(640, 480));
 
 	VBoxContainer *main_vb = memnew(VBoxContainer);
 	add_child(main_vb);
@@ -1178,10 +1180,10 @@ ProjectExportDialog::ProjectExportDialog() {
 
 	HBoxContainer *preset_hb = memnew(HBoxContainer);
 	preset_hb->add_child(l);
-	preset_hb->add_spacer();
 	preset_vb->add_child(preset_hb);
 
 	add_preset = memnew(MenuButton);
+	add_preset->set_h_size_flags(Control::SIZE_EXPAND | Control::SIZE_SHRINK_END);
 	add_preset->set_text(TTR("Add..."));
 	add_preset->get_popup()->connect("index_pressed", callable_mp(this, &ProjectExportDialog::_add_preset));
 	preset_hb->add_child(add_preset);
@@ -1274,7 +1276,6 @@ ProjectExportDialog::ProjectExportDialog() {
 	server_strip_message = memnew(Label);
 	server_strip_message->set_visible(false);
 	server_strip_message->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
-	server_strip_message->set_custom_minimum_size(Size2(300 * EDSCALE, 1));
 	resources_vb->add_child(server_strip_message);
 
 	{

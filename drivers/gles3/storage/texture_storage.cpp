@@ -1623,46 +1623,6 @@ void TextureStorage::update_texture_atlas() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-/* DECAL API */
-
-RID TextureStorage::decal_allocate() {
-	return RID();
-}
-
-void TextureStorage::decal_initialize(RID p_rid) {
-}
-
-void TextureStorage::decal_set_size(RID p_decal, const Vector3 &p_size) {
-}
-
-void TextureStorage::decal_set_texture(RID p_decal, RS::DecalTexture p_type, RID p_texture) {
-}
-
-void TextureStorage::decal_set_emission_energy(RID p_decal, float p_energy) {
-}
-
-void TextureStorage::decal_set_albedo_mix(RID p_decal, float p_mix) {
-}
-
-void TextureStorage::decal_set_modulate(RID p_decal, const Color &p_modulate) {
-}
-
-void TextureStorage::decal_set_cull_mask(RID p_decal, uint32_t p_layers) {
-}
-
-void TextureStorage::decal_set_distance_fade(RID p_decal, bool p_enabled, float p_begin, float p_length) {
-}
-
-void TextureStorage::decal_set_fade(RID p_decal, float p_above, float p_below) {
-}
-
-void TextureStorage::decal_set_normal_fade(RID p_decal, float p_fade) {
-}
-
-AABB TextureStorage::decal_get_aabb(RID p_decal) const {
-	return AABB();
-}
-
 /* RENDER TARGET API */
 
 GLuint TextureStorage::system_fbo = 0;
@@ -2597,10 +2557,7 @@ void TextureStorage::render_target_copy_to_back_buffer(RID p_render_target, cons
 	glBindFramebuffer(GL_FRAMEBUFFER, rt->backbuffer_fbo);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, rt->color);
-	Rect2 normalized_region = region;
-	normalized_region.position = normalized_region.position / Size2(rt->size);
-	normalized_region.size = normalized_region.size / Size2(rt->size);
-	GLES3::CopyEffects::get_singleton()->copy_to_and_from_rect(normalized_region);
+	GLES3::CopyEffects::get_singleton()->copy_screen();
 
 	if (p_gen_mipmaps) {
 		GLES3::CopyEffects::get_singleton()->gaussian_blur(rt->backbuffer, rt->mipmap_count, region, rt->size);

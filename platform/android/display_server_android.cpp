@@ -37,13 +37,6 @@
 
 #include "core/config/project_settings.h"
 
-#if defined(VULKAN_ENABLED)
-#include "vulkan_context_android.h"
-
-#include "drivers/vulkan/rendering_device_vulkan.h"
-#include "servers/rendering/renderer_rd/renderer_compositor_rd.h"
-#endif
-
 #ifdef GLES3_ENABLED
 #include "drivers/gles3/rasterizer_gles3.h"
 
@@ -486,9 +479,6 @@ Vector<String> DisplayServerAndroid::get_rendering_drivers_func() {
 #ifdef GLES3_ENABLED
 	drivers.push_back("opengl3");
 #endif
-#ifdef VULKAN_ENABLED
-	drivers.push_back("vulkan");
-#endif
 
 	return drivers;
 }
@@ -496,16 +486,9 @@ Vector<String> DisplayServerAndroid::get_rendering_drivers_func() {
 DisplayServer *DisplayServerAndroid::create_func(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
 	DisplayServer *ds = memnew(DisplayServerAndroid(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error));
 	if (r_error != OK) {
-		if (p_rendering_driver == "vulkan") {
-			OS::get_singleton()->alert(
-					"Your device seems not to support the required Vulkan version.\n\n"
-					"Please try exporting your game using the 'gl_compatibility' renderer.",
-					"Unable to initialize Vulkan video driver");
-		} else {
-			OS::get_singleton()->alert(
-					"Your device seems not to support the required OpenGL ES 3.0 version.",
-					"Unable to initialize OpenGL video driver");
-		}
+		OS::get_singleton()->alert(
+				"Your device seems not to support the required OpenGL ES 3.0 version.",
+				"Unable to initialize OpenGL video driver");
 	}
 	return ds;
 }
@@ -515,23 +498,6 @@ void DisplayServerAndroid::register_android_driver() {
 }
 
 void DisplayServerAndroid::reset_window() {
-#if defined(VULKAN_ENABLED)
-	if (rendering_driver == "vulkan") {
-		ANativeWindow *native_window = OS_Android::get_singleton()->get_native_window();
-		ERR_FAIL_NULL(native_window);
-
-		ERR_FAIL_NULL(context_vulkan);
-		VSyncMode last_vsync_mode = context_vulkan->get_vsync_mode(MAIN_WINDOW_ID);
-		context_vulkan->window_destroy(MAIN_WINDOW_ID);
-
-		Size2i display_size = OS_Android::get_singleton()->get_display_size();
-		if (context_vulkan->window_create(native_window, last_vsync_mode, display_size.width, display_size.height) != OK) {
-			memdelete(context_vulkan);
-			context_vulkan = nullptr;
-			ERR_FAIL_MSG("Failed to reset Vulkan window.");
-		}
-	}
-#endif
 }
 
 void DisplayServerAndroid::notify_surface_changed(int p_width, int p_height) {
@@ -551,35 +517,6 @@ DisplayServerAndroid::DisplayServerAndroid(const String &p_rendering_driver, Dis
 	}
 #endif
 
-#if defined(VULKAN_ENABLED)
-	context_vulkan = nullptr;
-	rendering_device_vulkan = nullptr;
-
-	if (rendering_driver == "vulkan") {
-		ANativeWindow *native_window = OS_Android::get_singleton()->get_native_window();
-		ERR_FAIL_NULL(native_window);
-
-		context_vulkan = memnew(VulkanContextAndroid);
-		if (context_vulkan->initialize() != OK) {
-			memdelete(context_vulkan);
-			context_vulkan = nullptr;
-			ERR_FAIL_MSG("Failed to initialize Vulkan context");
-		}
-
-		Size2i display_size = OS_Android::get_singleton()->get_display_size();
-		if (context_vulkan->window_create(native_window, p_vsync_mode, display_size.width, display_size.height) != OK) {
-			memdelete(context_vulkan);
-			context_vulkan = nullptr;
-			ERR_FAIL_MSG("Failed to create Vulkan window.");
-		}
-
-		rendering_device_vulkan = memnew(RenderingDeviceVulkan);
-		rendering_device_vulkan->initialize(context_vulkan);
-
-		RendererCompositorRD::make_current();
-	}
-#endif
-
 	Input::get_singleton()->set_event_dispatch_function(_dispatch_input_events);
 	Input::get_singleton()->set_use_input_buffering(true); // Needed because events will come directly from the UI thread
 
@@ -587,18 +524,6 @@ DisplayServerAndroid::DisplayServerAndroid(const String &p_rendering_driver, Dis
 }
 
 DisplayServerAndroid::~DisplayServerAndroid() {
-#if defined(VULKAN_ENABLED)
-	if (rendering_driver == "vulkan") {
-		if (rendering_device_vulkan) {
-			rendering_device_vulkan->finalize();
-			memdelete(rendering_device_vulkan);
-		}
-
-		if (context_vulkan) {
-			memdelete(context_vulkan);
-		}
-	}
-#endif
 }
 
 void DisplayServerAndroid::process_accelerometer(const Vector3 &p_accelerometer) {
@@ -687,19 +612,9 @@ void DisplayServerAndroid::cursor_set_custom_image(const Ref<Resource> &p_cursor
 }
 
 void DisplayServerAndroid::window_set_vsync_mode(DisplayServer::VSyncMode p_vsync_mode, WindowID p_window) {
-#if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		context_vulkan->set_vsync_mode(p_window, p_vsync_mode);
-	}
-#endif
 }
 
 DisplayServer::VSyncMode DisplayServerAndroid::window_get_vsync_mode(WindowID p_window) const {
-#if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		return context_vulkan->get_vsync_mode(p_window);
-	}
-#endif
 	return DisplayServer::VSYNC_ENABLED;
 }
 

@@ -194,8 +194,7 @@ void AnimationNodeStateMachineEditor::_state_machine_gui_input(const Ref<InputEv
 					name_edit_popup->set_size(edit_rect.size);
 					name_edit->set_text(node_rects[i].node_name);
 					name_edit_popup->popup();
-					name_edit->grab_focus();
-					name_edit->select_all();
+					name_edit->edit(true);
 
 					prev_name = node_rects[i].node_name;
 					return;
@@ -1733,9 +1732,9 @@ AnimationNodeStateMachineEditor::AnimationNodeStateMachineEditor() {
 
 	//
 
-	top_hb->add_spacer();
-
-	top_hb->add_child(memnew(Label(TTR("Play Mode:"))));
+	Label *play_mode_lb = memnew(Label(TTR("Play Mode:")));
+	play_mode_lb->set_h_size_flags(SIZE_EXPAND | SIZE_SHRINK_END);
+	top_hb->add_child(play_mode_lb);
 	play_mode = memnew(OptionButton);
 	top_hb->add_child(play_mode);
 

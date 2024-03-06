@@ -112,7 +112,7 @@ void ShaderCreateDialog::_path_hbox_sorted() {
 		file_path->set_caret_column(file_path->get_text().length());
 		file_path->set_caret_column(filename_start_pos);
 
-		file_path->grab_focus();
+		file_path->edit();
 	}
 }
 
@@ -152,22 +152,6 @@ void ShaderCreateDialog::_create_new() {
 
 			if (current_template == 0) { // Default template.
 				switch (current_mode) {
-					case Shader::MODE_SPATIAL:
-						code += R"(
-void vertex() {
-	// Called for every vertex the material is visible on.
-}
-
-void fragment() {
-	// Called for every pixel the material is visible on.
-}
-
-//void light() {
-	// Called for every pixel for every light affecting the material.
-	// Uncomment to replace the default light processing function with this one.
-//}
-)";
-						break;
 					case Shader::MODE_CANVAS_ITEM:
 						code += R"(
 void vertex() {
@@ -195,22 +179,6 @@ void process() {
 }
 )";
 						break;
-					case Shader::MODE_SKY:
-						code += R"(
-void sky() {
-	// Called for every visible pixel in the sky background, as well as all pixels
-	// in the radiance cubemap.
-}
-)";
-						break;
-					case Shader::MODE_FOG:
-						code += R"(
-void fog() {
-	// Called once for every froxel that is touched by an axis-aligned bounding box
-	// of the associated FogVolume. This means that froxels that just barely touch
-	// a given FogVolume will still be used.
-}
-)";
 				}
 			}
 			text_shader->set_code(code.as_string());
@@ -356,7 +324,7 @@ void ShaderCreateDialog::_file_selected(const String &p_file) {
 	int select_start = p.rfind(filename);
 	file_path->select(select_start, select_start + filename.length());
 	file_path->set_caret_column(select_start + filename.length());
-	file_path->grab_focus();
+	file_path->edit();
 }
 
 void ShaderCreateDialog::_path_changed(const String &p_path) {

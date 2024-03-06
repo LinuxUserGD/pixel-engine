@@ -45,7 +45,6 @@
 #include "tests/core/io/test_resource.h"
 #include "tests/core/io/test_xml_parser.h"
 #include "tests/core/math/test_aabb.h"
-#include "tests/core/math/test_astar.h"
 #include "tests/core/math/test_basis.h"
 #include "tests/core/math/test_color.h"
 #include "tests/core/math/test_expression.h"
@@ -91,7 +90,6 @@
 #include "tests/core/variant/test_variant.h"
 #include "tests/core/variant/test_variant_utility.h"
 #include "tests/scene/test_animation.h"
-#include "tests/scene/test_arraymesh.h"
 #include "tests/scene/test_audio_stream_wav.h"
 #include "tests/scene/test_bit_map.h"
 #include "tests/scene/test_code_edit.h"
@@ -99,7 +97,6 @@
 #include "tests/scene/test_control.h"
 #include "tests/scene/test_curve.h"
 #include "tests/scene/test_curve_2d.h"
-#include "tests/scene/test_curve_3d.h"
 #include "tests/scene/test_gradient.h"
 #include "tests/scene/test_node.h"
 #include "tests/scene/test_node_2d.h"
@@ -114,19 +111,8 @@
 #include "tests/servers/rendering/test_shader_preprocessor.h"
 #include "tests/servers/test_text_server.h"
 #include "tests/test_validate_testing.h"
-
-#ifndef _3D_DISABLED
-#include "tests/scene/test_navigation_agent_2d.h"
-#include "tests/scene/test_navigation_agent_3d.h"
-#include "tests/scene/test_navigation_obstacle_2d.h"
-#include "tests/scene/test_navigation_obstacle_3d.h"
-#include "tests/scene/test_navigation_region_2d.h"
-#include "tests/scene/test_navigation_region_3d.h"
-#include "tests/scene/test_path_3d.h"
-#include "tests/scene/test_primitives.h"
-#include "tests/servers/test_navigation_server_2d.h"
-#include "tests/servers/test_navigation_server_3d.h"
-#endif // _3D_DISABLED
+#include "tests/servers/test_text_server.h"
+#include "tests/test_validate_testing.h"
 
 #include "modules/modules_tests.gen.h"
 
@@ -134,12 +120,7 @@
 #include "tests/test_macros.h"
 
 #include "scene/theme/theme_db.h"
-#ifndef _3D_DISABLED
-#include "servers/navigation_server_2d.h"
-#include "servers/navigation_server_3d.h"
-#endif // _3D_DISABLED
 #include "servers/physics_server_2d.h"
-#include "servers/physics_server_3d.h"
 #include "servers/rendering/rendering_server_default.h"
 
 int test_main(int argc, char *argv[]) {
@@ -214,12 +195,7 @@ struct GodotTestCaseListener : public doctest::IReporter {
 
 	SignalWatcher *signal_watcher = nullptr;
 
-	PhysicsServer3D *physics_server_3d = nullptr;
 	PhysicsServer2D *physics_server_2d = nullptr;
-#ifndef _3D_DISABLED
-	NavigationServer3D *navigation_server_3d = nullptr;
-	NavigationServer2D *navigation_server_2d = nullptr;
-#endif // _3D_DISABLED
 
 	void test_case_start(const doctest::TestCaseData &p_in) override {
 		reinitialize();
@@ -251,18 +227,8 @@ struct GodotTestCaseListener : public doctest::IReporter {
 			ThemeDB::get_singleton()->finalize_theme();
 			ThemeDB::get_singleton()->initialize_theme_noproject();
 
-			physics_server_3d = PhysicsServer3DManager::get_singleton()->new_default_server();
-			physics_server_3d->init();
-
 			physics_server_2d = PhysicsServer2DManager::get_singleton()->new_default_server();
 			physics_server_2d->init();
-
-#ifndef _3D_DISABLED
-			ERR_PRINT_OFF;
-			navigation_server_3d = NavigationServer3DManager::new_default_server();
-			navigation_server_2d = NavigationServer2DManager::new_default_server();
-			ERR_PRINT_ON;
-#endif // _3D_DISABLED
 
 			memnew(InputMap);
 			InputMap::get_singleton()->load_default();
@@ -283,16 +249,6 @@ struct GodotTestCaseListener : public doctest::IReporter {
 			audio_server->init();
 			return;
 		}
-
-#ifndef _3D_DISABLED
-		if (suite_name.find("[Navigation]") != -1 && navigation_server_2d == nullptr && navigation_server_3d == nullptr) {
-			ERR_PRINT_OFF;
-			navigation_server_3d = NavigationServer3DManager::new_default_server();
-			navigation_server_2d = NavigationServer2DManager::new_default_server();
-			ERR_PRINT_ON;
-			return;
-		}
-#endif // _3D_DISABLED
 	}
 
 	void test_case_end(const doctest::CurrentTestCaseStats &) override {
@@ -306,24 +262,6 @@ struct GodotTestCaseListener : public doctest::IReporter {
 
 		if (SceneTree::get_singleton()) {
 			memdelete(SceneTree::get_singleton());
-		}
-
-#ifndef _3D_DISABLED
-		if (navigation_server_3d) {
-			memdelete(navigation_server_3d);
-			navigation_server_3d = nullptr;
-		}
-
-		if (navigation_server_2d) {
-			memdelete(navigation_server_2d);
-			navigation_server_2d = nullptr;
-		}
-#endif // _3D_DISABLED
-
-		if (physics_server_3d) {
-			physics_server_3d->finish();
-			memdelete(physics_server_3d);
-			physics_server_3d = nullptr;
 		}
 
 		if (physics_server_2d) {

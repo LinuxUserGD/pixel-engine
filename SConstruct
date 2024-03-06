@@ -189,10 +189,7 @@ opts.Add(EnumVariable("precision", "Set the floating-point precision level", "si
 opts.Add(BoolVariable("minizip", "Enable ZIP archive support using minizip", True))
 opts.Add(BoolVariable("brotli", "Enable Brotli for decompresson and WOFF2 fonts support", True))
 opts.Add(BoolVariable("xaudio2", "Enable the XAudio2 audio driver", False))
-opts.Add(BoolVariable("vulkan", "Enable the vulkan rendering driver", True))
 opts.Add(BoolVariable("opengl3", "Enable the OpenGL/GLES3 rendering driver", True))
-opts.Add(BoolVariable("openxr", "Enable the OpenXR driver", True))
-opts.Add(BoolVariable("use_volk", "Use the volk library to load the Vulkan loader dynamically", True))
 opts.Add(BoolVariable("disable_exceptions", "Force disabling exception handling code", True))
 opts.Add("custom_modules", "A list of comma-separated directory paths containing custom modules to build.", "")
 opts.Add(BoolVariable("custom_modules_recursive", "Detect custom modules recursively for each specified path.", True))
@@ -210,7 +207,6 @@ opts.Add("extra_suffix", "Custom extra suffix added to the base filename of all 
 opts.Add("object_prefix", "Custom prefix added to the base filename of all generated object files", "")
 opts.Add(BoolVariable("vsproj", "Generate a Visual Studio solution", False))
 opts.Add("vsproj_name", "Name of the Visual Studio solution", "godot")
-opts.Add(BoolVariable("disable_3d", "Disable 3D nodes for a smaller executable", False))
 opts.Add(BoolVariable("disable_advanced_gui", "Disable advanced GUI nodes and behaviors", False))
 opts.Add("build_profile", "Path to a file containing a feature build profile", "")
 opts.Add(BoolVariable("modules_enabled_by_default", "If no, disable all modules except ones explicitly enabled", True))
@@ -244,14 +240,9 @@ opts.Add(BoolVariable("builtin_libwebp", "Use the built-in libwebp library", Tru
 opts.Add(BoolVariable("builtin_wslay", "Use the built-in wslay library", True))
 opts.Add(BoolVariable("builtin_mbedtls", "Use the built-in mbedTLS library", True))
 opts.Add(BoolVariable("builtin_miniupnpc", "Use the built-in miniupnpc library", True))
-opts.Add(BoolVariable("builtin_openxr", "Use the built-in OpenXR library", True))
 opts.Add(BoolVariable("builtin_pcre2", "Use the built-in PCRE2 library", True))
 opts.Add(BoolVariable("builtin_pcre2_with_jit", "Use JIT compiler for the built-in PCRE2 library", True))
-opts.Add(BoolVariable("builtin_recastnavigation", "Use the built-in Recast navigation library", True))
-opts.Add(BoolVariable("builtin_rvo2_2d", "Use the built-in RVO2 2D library", True))
-opts.Add(BoolVariable("builtin_rvo2_3d", "Use the built-in RVO2 3D library", True))
 opts.Add(BoolVariable("builtin_squish", "Use the built-in squish library", True))
-opts.Add(BoolVariable("builtin_xatlas", "Use the built-in xatlas library", True))
 opts.Add(BoolVariable("builtin_zlib", "Use the built-in zlib library", True))
 opts.Add(BoolVariable("builtin_zstd", "Use the built-in Zstd library", True))
 
@@ -898,12 +889,6 @@ if selected_platform in platform_list:
     env["OBJPREFIX"] = env["object_prefix"]
     env["SHOBJPREFIX"] = env["object_prefix"]
 
-    if env["disable_3d"]:
-        if env.editor_build:
-            print("Build option 'disable_3d=yes' cannot be used for editor builds, only for export template builds.")
-            Exit(255)
-        else:
-            env.Append(CPPDEFINES=["_3D_DISABLED"])
     if env["disable_advanced_gui"]:
         if env.editor_build:
             print(

@@ -125,7 +125,7 @@ bool ResourceImporterLayeredTexture::get_option_visibility(const String &p_path,
 	if (p_option == "compress/lossy_quality" && p_options.has("compress/mode")) {
 		return int(p_options["compress/mode"]) == COMPRESS_LOSSY;
 	}
-	if ((p_option == "compress/high_quality" || p_option == "compress/hdr_compression") && p_options.has("compress/mode")) {
+	if ((p_option == "compress/high_quality") && p_options.has("compress/mode")) {
 		return int(p_options["compress/mode"]) == COMPRESS_VRAM_COMPRESSED;
 	}
 	return true;
@@ -143,7 +143,6 @@ void ResourceImporterLayeredTexture::get_import_options(const String &p_path, Li
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "compress/mode", PROPERTY_HINT_ENUM, "Lossless,Lossy,VRAM Compressed,VRAM Uncompressed,Basis Universal", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), 1));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "compress/high_quality"), false));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "compress/lossy_quality", PROPERTY_HINT_RANGE, "0,1,0.01"), 0.7));
-	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "compress/hdr_compression", PROPERTY_HINT_ENUM, "Disabled,Opaque Only,Always"), 1));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "compress/channel_pack", PROPERTY_HINT_ENUM, "sRGB Friendly,Optimized,Normal Map (RG Channels)"), 0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "mipmaps/generate"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "mipmaps/limit", PROPERTY_HINT_RANGE, "-1,256"), -1));
@@ -289,7 +288,6 @@ Error ResourceImporterLayeredTexture::import(const String &p_source_file, const 
 	int compress_mode = p_options["compress/mode"];
 	float lossy = p_options["compress/lossy_quality"];
 	bool high_quality = p_options["compress/high_quality"];
-	int hdr_compression = p_options["compress/hdr_compression"];
 	bool mipmaps = p_options["mipmaps/generate"];
 
 	int channel_pack = p_options["compress/channel_pack"];
@@ -393,7 +391,6 @@ Error ResourceImporterLayeredTexture::import(const String &p_source_file, const 
 	texture_import->slices = &slices;
 	texture_import->compress_mode = compress_mode;
 	texture_import->lossy = lossy;
-	texture_import->hdr_compression = hdr_compression;
 	texture_import->mipmaps = mipmaps;
 	texture_import->used_channels = used_channels;
 	texture_import->high_quality = high_quality;
@@ -511,72 +508,34 @@ void ResourceImporterLayeredTexture::_check_compress_ctex(const String &p_source
 		r_texture_import->formats_imported.push_back("etc2_astc");
 	}
 
-	bool can_compress_hdr = r_texture_import->hdr_compression > 0;
 	ERR_FAIL_NULL(r_texture_import->image);
 	bool is_hdr = (r_texture_import->image->get_format() >= Image::FORMAT_RF && r_texture_import->image->get_format() <= Image::FORMAT_RGBE9995);
 	ERR_FAIL_NULL(r_texture_import->slices);
-	// Can compress hdr, but hdr with alpha is not compressible.
-	bool use_uncompressed = false;
-
-	if (is_hdr) {
-		if (r_texture_import->used_channels == Image::USED_CHANNELS_LA || r_texture_import->used_channels == Image::USED_CHANNELS_RGBA) {
-			if (r_texture_import->hdr_compression == 2) {
-				// The user selected to compress hdr anyway, so force an alpha-less format.
-				if (r_texture_import->image->get_format() == Image::FORMAT_RGBAF) {
-					for (int i = 0; i < r_texture_import->slices->size(); i++) {
-						r_texture_import->slices->write[i]->convert(Image::FORMAT_RGBF);
-					}
-
-				} else if (r_texture_import->image->get_format() == Image::FORMAT_RGBAH) {
-					for (int i = 0; i < r_texture_import->slices->size(); i++) {
-						r_texture_import->slices->write[i]->convert(Image::FORMAT_RGBH);
-					}
-				}
-			} else {
-				can_compress_hdr = false;
-			}
+	if (can_s3tc_bptc) {
+		Image::CompressMode image_compress_mode;
+		String image_compress_format;
+		if (r_texture_import->high_quality || is_hdr) {
+			image_compress_mode = Image::COMPRESS_BPTC;
+			image_compress_format = "bptc";
+		} else {
+			image_compress_mode = Image::COMPRESS_S3TC;
+			image_compress_format = "s3tc";
 		}
-
-		if (!can_compress_hdr) {
-			//default to rgbe
-			if (r_texture_import->image->get_format() != Image::FORMAT_RGBE9995) {
-				for (int i = 0; i < r_texture_import->slices->size(); i++) {
-					r_texture_import->slices->write[i]->convert(Image::FORMAT_RGBE9995);
-				}
-			}
-			use_uncompressed = true;
-		}
+		_save_tex(*r_texture_import->slices, r_texture_import->save_path + "." + image_compress_format + "." + extension, r_texture_import->compress_mode, r_texture_import->lossy, image_compress_mode, *r_texture_import->csource, r_texture_import->used_channels, r_texture_import->mipmaps, true);
+		r_texture_import->platform_variants->push_back(image_compress_format);
 	}
 
-	if (use_uncompressed) {
-		_save_tex(*r_texture_import->slices, r_texture_import->save_path + "." + extension, COMPRESS_VRAM_UNCOMPRESSED, r_texture_import->lossy, Image::COMPRESS_S3TC /* IGNORED */, *r_texture_import->csource, r_texture_import->used_channels, r_texture_import->mipmaps, false);
-	} else {
-		if (can_s3tc_bptc) {
-			Image::CompressMode image_compress_mode;
-			String image_compress_format;
-			if (r_texture_import->high_quality || is_hdr) {
-				image_compress_mode = Image::COMPRESS_BPTC;
-				image_compress_format = "bptc";
-			} else {
-				image_compress_mode = Image::COMPRESS_S3TC;
-				image_compress_format = "s3tc";
-			}
-			_save_tex(*r_texture_import->slices, r_texture_import->save_path + "." + image_compress_format + "." + extension, r_texture_import->compress_mode, r_texture_import->lossy, image_compress_mode, *r_texture_import->csource, r_texture_import->used_channels, r_texture_import->mipmaps, true);
-			r_texture_import->platform_variants->push_back(image_compress_format);
+	if (can_etc2_astc) {
+		Image::CompressMode image_compress_mode;
+		String image_compress_format;
+		if (r_texture_import->high_quality || is_hdr) {
+			image_compress_mode = Image::COMPRESS_ASTC;
+			image_compress_format = "astc";
+		} else {
+			image_compress_mode = Image::COMPRESS_ETC2;
+			image_compress_format = "etc2";
 		}
-
-		if (can_etc2_astc) {
-			Image::CompressMode image_compress_mode;
-			String image_compress_format;
-			if (r_texture_import->high_quality || is_hdr) {
-				image_compress_mode = Image::COMPRESS_ASTC;
-				image_compress_format = "astc";
-			} else {
-				image_compress_mode = Image::COMPRESS_ETC2;
-				image_compress_format = "etc2";
-			}
-			_save_tex(*r_texture_import->slices, r_texture_import->save_path + "." + image_compress_format + "." + extension, r_texture_import->compress_mode, r_texture_import->lossy, image_compress_mode, *r_texture_import->csource, r_texture_import->used_channels, r_texture_import->mipmaps, true);
-			r_texture_import->platform_variants->push_back(image_compress_format);
-		}
+		_save_tex(*r_texture_import->slices, r_texture_import->save_path + "." + image_compress_format + "." + extension, r_texture_import->compress_mode, r_texture_import->lossy, image_compress_mode, *r_texture_import->csource, r_texture_import->used_channels, r_texture_import->mipmaps, true);
+		r_texture_import->platform_variants->push_back(image_compress_format);
 	}
 }
