@@ -117,15 +117,6 @@
 #include "tests/servers/test_text_server.h"
 #include "tests/test_validate_testing.h"
 
-#ifndef _3D_DISABLED
-#include "tests/scene/test_camera_3d.h"
-#include "tests/scene/test_navigation_agent_3d.h"
-#include "tests/scene/test_navigation_obstacle_3d.h"
-#include "tests/scene/test_navigation_region_3d.h"
-#include "tests/scene/test_path_3d.h"
-#include "tests/servers/test_navigation_server_3d.h"
-#endif // _3D_DISABLED
-
 #include "modules/modules_tests.gen.h"
 
 #include "tests/display_server_mock.h"
