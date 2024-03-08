@@ -236,7 +236,6 @@
 			<param index="1" name="y" type="int" />
 			<description>
 				Returns the color of the pixel at [code](x, y)[/code].
-				This is the same as [method get_pixelv], but with two integer arguments instead of a [Vector2i] argument.
 			</description>
 		</method>
 		<method name="get_pixel_contours" qualifiers="const">
@@ -668,7 +667,6 @@
 				img.SetPixel(1, 2, Colors.Red); // Sets the color at (1, 2) to red.
 				[/csharp]
 				[/codeblocks]
-				This is the same as [method set_pixelv], but with a two integer arguments instead of a [Vector2i] argument.
 			</description>
 		</method>
 		<method name="set_pixel_contours">

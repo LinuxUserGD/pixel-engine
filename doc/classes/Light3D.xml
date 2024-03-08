@@ -77,12 +77,10 @@
 			[b]Note:[/b] This property is ignored if [member light_energy] is equal to [code]0.0[/code], as the light won't be present at all in the GI shader.
 		</member>
 		<member name="light_intensity_lumens" type="float" setter="set_param" getter="get_param">
-			Used by positional lights ([OmniLight3D] and [SpotLight3D]) when [member ProjectSettings.rendering/lights_and_shadows/use_physical_light_units] is [code]true[/code]. Sets the intensity of the light source measured in Lumens. Lumens are a measure of luminous flux, which is the total amount of visible light emitted by a light source per unit of time.
 			For [SpotLight3D]s, we assume that the area outside the visible cone is surrounded by a perfect light absorbing material. Accordingly, the apparent brightness of the cone area does not change as the cone increases and decreases in size.
 			A typical household lightbulb can range from around 600 lumens to 1,200 lumens, a candle is about 13 lumens, while a streetlight can be approximately 60,000 lumens.
 		</member>
 		<member name="light_intensity_lux" type="float" setter="set_param" getter="get_param">
-			Used by [DirectionalLight3D]s when [member ProjectSettings.rendering/lights_and_shadows/use_physical_light_units] is [code]true[/code]. Sets the intensity of the light source measured in Lux. Lux is a measure of luminous flux per unit area, it is equal to one lumen per square meter. Lux is the measure of how much light hits a surface at a given time.
 			On a clear sunny day a surface in direct sunlight may be approximately 100,000 lux, a typical room in a home may be approximately 50 lux, while the moonlit ground may be approximately 0.1 lux.
 		</member>
 		<member name="light_negative" type="bool" setter="set_negative" getter="is_negative" default="false">
@@ -90,7 +88,6 @@
 		</member>
 		<member name="light_projector" type="Texture2D" setter="set_projector" getter="get_projector">
 			[Texture2D] projected by light. [member shadow_enabled] must be on for the projector to work. Light projectors make the light appear as if it is shining through a colored but transparent object, almost like light shining through stained-glass.
-			[b]Note:[/b] Unlike [BaseMaterial3D] whose filter mode can be adjusted on a per-material basis, the filter mode for light projector textures is set globally with [member ProjectSettings.rendering/textures/light_projectors/filter].
 			[b]Note:[/b] Light projector textures are only supported in the Forward+ and Mobile rendering methods, not Compatibility.
 		</member>
 		<member name="light_size" type="float" setter="set_param" getter="get_param" default="0.0">
@@ -192,7 +189,7 @@
 			Constant for accessing [member shadow_transmittance_bias].
 		</constant>
 		<constant name="PARAM_INTENSITY" value="20" enum="Param">
-			Constant for accessing [member light_intensity_lumens] and [member light_intensity_lux]. Only used when [member ProjectSettings.rendering/lights_and_shadows/use_physical_light_units] is [code]true[/code].
+			Constant for accessing [member light_intensity_lumens] and [member light_intensity_lux].
 		</constant>
 		<constant name="PARAM_MAX" value="21" enum="Param">
 			Represents the size of the [enum Param] enum.
@@ -206,7 +203,6 @@
 			[b]Note:[/b] The light is not baked in [LightmapGI] if [member editor_only] is [code]true[/code].
 		</constant>
 		<constant name="BAKE_DYNAMIC" value="2" enum="BakeMode">
-			Light is taken into account in dynamic baking ([VoxelGI] and SDFGI ([member Environment.sdfgi_enabled]) only). The light can be moved around or modified with global illumination updating in real-time. The light's global illumination appearance will be slightly different compared to [constant BAKE_STATIC]. This has a greater performance cost compared to [constant BAKE_STATIC]. When using SDFGI, the update speed of dynamic lights is affected by [member ProjectSettings.rendering/global_illumination/sdfgi/frames_to_update_lights].
 		</constant>
 	</constants>
 </class>

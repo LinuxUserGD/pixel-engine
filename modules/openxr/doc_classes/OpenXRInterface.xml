@@ -96,7 +96,6 @@
 			<return type="bool" />
 			<description>
 				Returns [code]true[/code] if OpenXR's foveation extension is supported, the interface must be initialized before this returns a valid value.
-				[b]Note:[/b] This feature is only available on the compatibility renderer and currently only available on some stand alone headsets. For Vulkan set [member Viewport.vrs_mode] to [code]VRS_XR[/code] on desktop.
 			</description>
 		</method>
 		<method name="is_hand_tracking_supported">

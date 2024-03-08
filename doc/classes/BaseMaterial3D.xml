@@ -203,7 +203,7 @@
 			Multiplier for emitted light. See [member emission_enabled].
 		</member>
 		<member name="emission_intensity" type="float" setter="set_emission_intensity" getter="get_emission_intensity">
-			Luminance of emitted light, measured in nits (candela per square meter). Only available when [member ProjectSettings.rendering/lights_and_shadows/use_physical_light_units] is enabled. The default is roughly equivalent to an indoor lightbulb.
+			Luminance of emitted light, measured in nits (candela per square meter). The default is roughly equivalent to an indoor lightbulb.
 		</member>
 		<member name="emission_on_uv2" type="bool" setter="set_flag" getter="get_flag" default="false">
 			Use [code]UV2[/code] to read from the [member emission_texture].

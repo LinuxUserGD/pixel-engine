@@ -240,7 +240,7 @@
 			<return type="bool" />
 			<param index="0" name="object" type="Object" />
 			<description>
-				Implement this function if your plugin edits a specific type of object (Resource or Node). If you return [code]true[/code], then you will get the functions [method _edit] and [method _make_visible] called when the editor requests them. If you have declared the methods [method _forward_canvas_gui_input] and [method _forward_3d_gui_input] these will be called too.
+				Implement this function if your plugin edits a specific type of object (Resource or Node). If you return [code]true[/code], then you will get the functions [method _edit] and [method _make_visible] called when the editor requests them.
 				[b]Note:[/b] Each plugin should handle only one type of objects at a time. If a plugin handles more types of objects and they are edited at the same time, it will result in errors.
 			</description>
 		</method>
@@ -384,7 +384,6 @@
 			<description>
 				Registers a new [EditorImportPlugin]. Import plugins are used to import custom and unsupported assets as a custom [Resource] type.
 				If [param first_priority] is [code]true[/code], the new import plugin is inserted first in the list and takes precedence over pre-existing plugins.
-				[b]Note:[/b] If you want to import custom 3D asset formats use [method add_scene_format_importer_plugin] instead.
 				See [method add_inspector_plugin] for an example of how to register a plugin.
 			</description>
 		</method>
@@ -588,19 +587,19 @@
 		<method name="set_force_draw_over_forwarding_enabled">
 			<return type="void" />
 			<description>
-				Enables calling of [method _forward_canvas_force_draw_over_viewport] for the 2D editor and [method _forward_3d_force_draw_over_viewport] for the 3D editor when their viewports are updated. You need to call this method only once and it will work permanently for this plugin.
+				Enables calling of [method _forward_canvas_force_draw_over_viewport] for the 2D editor. You need to call this method only once and it will work permanently for this plugin.
 			</description>
 		</method>
 		<method name="set_input_event_forwarding_always_enabled">
 			<return type="void" />
 			<description>
-				Use this method if you always want to receive inputs from 3D view screen inside [method _forward_3d_gui_input]. It might be especially usable if your plugin will want to use raycast in the scene.
+				It might be especially usable if your plugin will want to use raycast in the scene.
 			</description>
 		</method>
 		<method name="update_overlays" qualifiers="const">
 			<return type="int" />
 			<description>
-				Updates the overlays of the 2D and 3D editor viewport. Causes methods [method _forward_canvas_draw_over_viewport], [method _forward_canvas_force_draw_over_viewport], [method _forward_3d_draw_over_viewport] and [method _forward_3d_force_draw_over_viewport] to be called.
+				Updates the overlays of the 2D and 3D editor viewport.
 			</description>
 		</method>
 	</methods>

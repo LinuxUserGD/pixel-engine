@@ -63,7 +63,6 @@
 	<members>
 		<member name="angular_damp" type="float" setter="set_angular_damp" getter="get_angular_damp" default="0.1">
 			The rate at which objects stop spinning in this area. Represents the angular velocity lost per second.
-			See [member ProjectSettings.physics/3d/default_angular_damp] for more details about damping.
 		</member>
 		<member name="angular_damp_space_override" type="int" setter="set_angular_damp_space_override_mode" getter="get_angular_damp_space_override_mode" enum="Area3D.SpaceOverride" default="0">
 			Override mode for angular damping calculations within this area. See [enum SpaceOverride] for possible values.
@@ -95,7 +94,6 @@
 		</member>
 		<member name="linear_damp" type="float" setter="set_linear_damp" getter="get_linear_damp" default="0.1">
 			The rate at which objects stop moving in this area. Represents the linear velocity lost per second.
-			See [member ProjectSettings.physics/3d/default_linear_damp] for more details about damping.
 		</member>
 		<member name="linear_damp_space_override" type="int" setter="set_linear_damp_space_override_mode" getter="get_linear_damp_space_override_mode" enum="Area3D.SpaceOverride" default="0">
 			Override mode for linear damping calculations within this area. See [enum SpaceOverride] for possible values.
