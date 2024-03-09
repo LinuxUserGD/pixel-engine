@@ -262,12 +262,6 @@ Vector2 hammersley(uint32_t i, uint32_t N) {
 
 /* ENVIRONMENT API */
 
-_FORCE_INLINE_ static uint32_t _indices_to_primitives(RS::PrimitiveType p_primitive, uint32_t p_indices) {
-	static const uint32_t divisor[RS::PRIMITIVE_MAX] = { 1, 2, 1, 3, 1 };
-	static const uint32_t subtractor[RS::PRIMITIVE_MAX] = { 0, 0, 1, 0, 1 };
-	return (p_indices - subtractor[p_primitive]) / divisor[p_primitive];
-}
-
 template <PassMode p_pass_mode>
 void RasterizerSceneGLES3::_render_list_template(RenderListParameters *p_params, const RenderDataGLES3 *p_render_data, uint32_t p_from_element, uint32_t p_to_element, bool p_alpha_pass) {
 }
