@@ -140,7 +140,6 @@
 #include "scene/resources/audio_stream_polyphonic.h"
 #include "scene/resources/audio_stream_wav.h"
 #include "scene/resources/bit_map.h"
-#include "scene/resources/bone_map.h"
 #include "scene/resources/camera_attributes.h"
 #include "scene/resources/camera_texture.h"
 #include "scene/resources/capsule_shape_2d.h"
