@@ -1745,12 +1745,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	}
 #endif
 	if (renderer_hints.is_empty()) {
-		ERR_PRINT("No renderers available.");
-	}
-
-	if (rendering_method != "gl_compatibility") {
-		OS::get_singleton()->print("Unknown renderer name '%s'.", rendering_method.utf8().get_data());
-		goto error;
+		rendering_driver = "dummy";
+		rendering_method = "";
 	}
 
 	if (!rendering_driver.is_empty()) {
@@ -1804,6 +1800,10 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			available_drivers.push_back("opengl3_es");
 		}
 #endif
+		if (rendering_method == "") {
+			available_drivers.push_back("dummy");
+		}
+
 		if (available_drivers.is_empty()) {
 			OS::get_singleton()->print("Unknown renderer name '%s', aborting.\n", rendering_method.utf8().get_data());
 			goto error;
