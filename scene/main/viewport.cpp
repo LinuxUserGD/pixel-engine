@@ -3736,7 +3736,6 @@ void Viewport::_bind_methods() {
 	ADD_GROUP("Rendering", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "msaa_2d", PROPERTY_HINT_ENUM, String::utf8("Disabled (Fastest),2× (Average),4× (Slow),8× (Slowest)")), "set_msaa_2d", "get_msaa_2d");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "debug_draw", PROPERTY_HINT_ENUM, "Disabled,Unshaded,Lighting,Overdraw,Wireframe"), "set_debug_draw", "get_debug_draw");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_hdr_2d"), "set_use_hdr_2d", "is_using_hdr_2d");
 	ADD_GROUP("Canvas Items", "canvas_item_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "canvas_item_default_texture_filter", PROPERTY_HINT_ENUM, "Nearest,Linear,Linear Mipmap,Nearest Mipmap"), "set_default_canvas_item_texture_filter", "get_default_canvas_item_texture_filter");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "canvas_item_default_texture_repeat", PROPERTY_HINT_ENUM, "Disabled,Enabled,Mirror"), "set_default_canvas_item_texture_repeat", "get_default_canvas_item_texture_repeat");
