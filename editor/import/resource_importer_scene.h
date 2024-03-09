@@ -34,7 +34,6 @@
 #include "core/error/error_macros.h"
 #include "core/io/resource_importer.h"
 #include "core/variant/dictionary.h"
-#include "scene/3d/importer_mesh_instance_3d.h"
 #include "scene/resources/animation.h"
 #include "scene/resources/box_shape_3d.h"
 #include "scene/resources/capsule_shape_3d.h"
