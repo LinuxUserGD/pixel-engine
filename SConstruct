@@ -258,6 +258,7 @@ opts.Add(BoolVariable("builtin_zstd", "Use the built-in Zstd library", True))
 # Compilation environment setup
 opts.Add("CXX", "C++ compiler")
 opts.Add("CC", "C compiler")
+opts.Add("AR", "Archiver")
 opts.Add("LINK", "Linker")
 opts.Add("CCFLAGS", "Custom flags for both the C and C++ compilers")
 opts.Add("CFLAGS", "Custom flags for the C compiler")
